@@ -9,13 +9,15 @@ simula la recepción y ejecución del movimiento en el brazo robótico UR5e, y e
 un handshake de confirmación ("DONE") a MATLAB para que pueda continuar el juego.
 """
 
+import os
 import socket
 import json
 import time
 from datetime import datetime
 
-HOST = "127.0.0.1"
-PORT = 5000
+# Dentro de Docker se usa BRIDGE_HOST=0.0.0.0 para aceptar conexiones desde el host
+HOST = os.environ.get("BRIDGE_HOST", "127.0.0.1")
+PORT = int(os.environ.get("BRIDGE_PORT", "5000"))
 
 TILE_NAMES = [
     "01: Salida (GO)", "02: Mediter. Ave.", "03: Caja de Comunidad", "04: Baltic Ave.",

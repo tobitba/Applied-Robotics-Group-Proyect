@@ -1,0 +1,3 @@
+# Only the bridge script is needed in the image
+*
+!monopoly_robot_bridge.py

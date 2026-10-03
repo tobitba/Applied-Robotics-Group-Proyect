@@ -1,0 +1,26 @@
+services:
+  bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+    init: true
+    ports:
+      - "5000:5000"
+
+  # Robot control (SMC). Idle until used: docker compose exec smc zsh
+  smc:
+    build:
+      context: ./ur_simple_control
+      dockerfile: docker/Dockerfile
+      args:
+        # Same UID as the host user so files written into the mounted repo (e.g. logs) are yours
+        STUDENT_UID: ${UID:-1000}
+    init: true
+    # Host networking (as in SMC's install guide): reaches the real UR5e and exposes Meshcat
+    network_mode: host
+    environment:
+      DISPLAY: ${DISPLAY:-}
+    volumes:
+      - ./ur_simple_control:/home/student/SimpleManipulatorControl
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    command: ["sleep", "infinity"]

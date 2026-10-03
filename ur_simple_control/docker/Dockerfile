@@ -54,7 +54,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # make the environment more usable
 # create user - jammy comes with user ubuntu with UID 1000, so now we do 1001
-RUN useradd -m -s /bin/zsh -G sudo -u 1001 student
+# STUDENT_UID can be set to the host user's UID so files in mounted folders are shared
+# (any existing user with that UID, e.g. ubuntu=1000, is removed first)
+ARG STUDENT_UID=1001
+RUN if id -u ${STUDENT_UID} >/dev/null 2>&1; then userdel -r $(id -nu ${STUDENT_UID}); fi \
+    && useradd -m -s /bin/zsh -G sudo -u ${STUDENT_UID} student
 
 WORKDIR /home/student/
 RUN passwd -d student
@@ -75,7 +79,7 @@ RUN pip install --break-system-packages -e ./SimpleManipulatorControl/python/
 RUN pip install --break-system-packages pin crocoddyl matplotlib meshcat ur_rtde \
                 qpsolvers ecos example_robot_data meshcat_shapes \
                 pyqt6 opencv-python qpsolvers quadprog \
-                proxsuite casadi pin-pink
+                proxsuite casadi pin-pink protobuf
 
 # TODO: add optional instals here. (pyqt6 would be one of them. another is protobuf)
 

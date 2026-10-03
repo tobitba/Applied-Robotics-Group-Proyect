@@ -15,18 +15,28 @@ fprintf('  MATLAB BOT-OPOLY <-> PUENTE PYTHON UR5e ROBOT   \n');
 fprintf('===================================================\n\n');
 
 % 2. Conectar al servidor Python mediante TCP Socket
-serverHost = '127.0.0.1';
+% En Docker, BRIDGE_HOST apunta al contenedor del puente
+serverHost = getenv('BRIDGE_HOST');
+if isempty(serverHost); serverHost = '127.0.0.1'; end
 serverPort = 5000;
 
 fprintf('1. Conectando al servidor Python en %s:%d ...\n', serverHost, serverPort);
 
-try
-    client = tcpclient(serverHost, serverPort, 'Timeout', 10);
-    configureTerminator(client, "LF"); % Usa caracter de nueva línea \n
-    fprintf('   -> Conexión establecida con éxito con el script de Python!\n\n');
-catch ME
-    error('No se pudo conectar al servidor Python. Asegúrate de haber ejecutado "python monopoly_robot_bridge.py" primero en la terminal.\nError original: %s', ME.message);
+% Reintentar unos segundos por si el puente aún está arrancando
+maxAttempts = 10;
+for attempt = 1:maxAttempts
+    try
+        client = tcpclient(serverHost, serverPort, 'Timeout', 10);
+        break;
+    catch ME
+        if attempt == maxAttempts
+            error('No se pudo conectar al servidor Python. Asegúrate de haber ejecutado "python monopoly_robot_bridge.py" primero en la terminal.\nError original: %s', ME.message);
+        end
+        pause(1);
+    end
 end
+configureTerminator(client, "LF"); % Usa caracter de nueva línea \n
+fprintf('   -> Conexión establecida con éxito con el script de Python!\n\n');
 
 % 3. Cargar el modelo pre-entrenado
 modelPath = fullfile('Resources', 'Models', 'model.mat');
