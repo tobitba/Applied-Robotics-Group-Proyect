@@ -1,0 +1,138 @@
+\section{Short introduction}
+More broadly speaking, control problems can be categorized
+into regulation or tracking problems.
+In regulation, the task is to stabilize the observed
+system state to a set reference value by computing
+error from the observed state to the desired reference,
+and then use a control law to drive the error to zero.
+In tracking problems, the task is to stabilize
+the system state around a trajectory. Said another way,
+there is a desired system state evolution,
+which is simply a line in some high dimensional space, parametrized by time.
+Thus, for each time instant, there is a desired system state.
+The errors can be instantaneous, or integrated over a time horizon.
+Usually when formulating a control law, the references' highest derivative 
+is given as a feedforward term, while the others are used for 
+feedback.
+
+In many ways, robotics problems are just a subset of control
+problems more broadly. This should be kept in mind,
+especially since one can easily get distracted with all the geometry,
+and the various competing control objectives.
+Regulation problems are much less common compared
+to tracking problems.
+In this text, and in the code, regulation problems are referred to 
+as ``\textbf{point to point motions}''.
+Tracking problems also consist of generating the reference is some way.
+Traditionally, this is referred to as
+\textbf{motion planning}, and is
+decomposed in the following steps:
+\begin{itemize}
+\item \textbf{path planning} - generating a sequence of waypoints
+	(more common),
+	or a smooth curve to a desired point
+\item \textbf{interpolation} - fitting of a smooth curve
+	to a set of planned waypoints
+\item \textbf{trajectory generation} - construction of a
+	time law on the smooth path, i.e. finding the mapping
+	between the path parameter and time
+\end{itemize}
+
+In terms of manipulator control, the positional encoders
+offer a massive benefit as they render the manipulator into
+a fully observed system.
+Otherwise, many challenges lie ahead.
+They stem from the fact that there is no silver bullet control
+scheme to solve every conceivable manipulator task at once.
+There are many control objectives to satisfy:
+\begin{itemize}
+\item reaching the desired reference quickly and efficiently 
+	(in terms of motor effort)
+\item avoiding collisions of the robot with itself or with the environment
+\item simultaneously tracking force and motion references
+\item optimizing the robot's posture for the task at hand
+\item ...
+\end{itemize}
+Even for a single manipulator, putting every objective
+into one optimal control problem results in a nonlinear problem
+which can not be solved for globaly.
+Thus different control strategies, including motion planning,
+need to employed depending on the situation. 
+
+For example, one simple way to ensure safe interaction with the environment
+is to use impedance control.
+Namely, the manipulator may be equipped with force/torque sensors,
+and the error dynamics can be turned into a spring-damper system.
+This results in the robot being compliant, or ``soft'' in
+response to an external force.
+
+In case of mobile robots, things become substantially more complicated.
+Localization is noisy, and often slow. The control strategy
+needs to accommodate both of these features.
+Additionally, in whole-body control tasks,
+the task is often (very) underdetermined, leaving
+many additional degrees of freedom that have to be accounted
+for for good performance.
+
+
+\subsection{Some common control approaches}
+\subsubsection{Model-based}
+If the task is to move the robot from one vector
+of joint positions to another, or to follow a trajectory
+of joint position, the task is fully defined
+in \textbf{joint space}.
+Control tasks for such problems are called
+\textbf{joint space control} tasks.
+However, we most often want to define tasks in terms of 
+where we want the robot to be in the environment.
+Purely geometric approaches to such problems
+are referred to as 
+\textbf{operational/Cartesian space control}.
+
+Leveraging force/torque sensing can result
+admitance control, impedance control or hybrid force-motion
+control.
+
+Optimal control problems in robots are usually formulated
+in joint space, in the sense that the task is to solve for
+a desired joint-space trajectory.
+
+\subsubsection{Model-free (learning)}
+All the hitherto mentioned control approaches are model-based,
+meaning that they rely on the model of the robot
+and the environment to compute the errors and solve for the
+control input.
+Recently, learning, and especially model-free learning,
+gained a lot of popularity in robotics control.
+It offers a huge benefit when there is no clear
+way to turn robot motion requirements into control objectives,
+and it very often simply beats model-based optimal control approaches.
+This is because the learning algorithms can work on much 
+sparser error signals, or in ML lingo, rewards.
+Another huge benefit is avoiding detailed environment modelling,
+which is a very hard problem in manipulation.
+Not only are the models difficult to observe, but they often 
+lead to NP-hard problems (planning for contacts in manipulation for example).
+There are two big drawbacks however. The first is that 
+learned controllers do not come with rigorously proven mathematical 
+convergence and performance guarantees (and thus safety requirements)
+The second is the so called ``sim-to-real'' gap.
+Namely, learning takes many iterations, and is generally infeasible
+on hardware for this reason. Thus the learning is done in simulation.
+However, no efficient physics simulator corresponds to reality ---
+approximations have to be made for the simulator to actually
+be faster than a hardware experiment. The problem is that
+the learning methods overfit to the simulation, and
+are difficult to transfer into the real world.
+This is a very active area of research, and there are interesting
+solutions and avenues for work in terms of both problems.
+
+\subsubsection{Which control approach to pick?}
+Here it is important to consult the following evergreen 
+rule of thumb in engineering: use the right tool for the job.
+Since simplicity and explainability are always a good thing,
+this means that one should use the simplest \textit{possible} control 
+technique for the task at hand.
+There is no point in learning inverse kinematics*,
+just as much as there is no point in using inverse kinematics
+and a FEM model of manipulate complex deformable objects.

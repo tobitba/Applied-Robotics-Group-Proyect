@@ -1,0 +1,6 @@
+host: "127.0.0.1"
+port_data: 6666
+port_command: 7777
+sending_frequency: 250
+real_for_real: True
+manual_translation_start: True

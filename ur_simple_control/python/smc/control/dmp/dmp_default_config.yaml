@@ -1,0 +1,5 @@
+temporal_coupling: True
+tau0: 10.0
+gamma_nominal: 1.0
+gamma_a: 0.5
+eps_tc: 0.001

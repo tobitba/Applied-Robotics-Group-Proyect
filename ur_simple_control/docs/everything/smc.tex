@@ -1,0 +1,71 @@
+\documentclass{report}
+\usepackage{graphicx} % Required for inserting images
+\usepackage{amsmath}
+\newcommand{\argmin}{\arg\!\min} 
+\newcommand{\argmax}{\arg\!\max} 
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage[T1]{fontenc}
+\usepackage{bm}
+\usepackage[a4paper, total={6in, 8in}]{geometry}
+\usepackage{array}
+\newcommand{\lorem}[1]{{\color{red} #1}}
+\usepackage{minted}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+    }
+
+\usepackage[
+backend=biber,
+%style=alphabetic,
+sorting=ynt
+]{biblatex}
+\addbibresource{references.bib}
+
+
+\title{Simple manipulator control \\
+\large A software package for robot control prototyping}
+\author{Marko Guberina}
+\date{\today}
+
+\begin{document}
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+\input{../01_introduction/introduction_section.tex}
+\input{../02_installation/installation_section.tex}
+\input{../03_dependencies/dependencies_section.tex}
+\input{../04_software_architecture/software_architecture_section.tex}
+%\input{../05_multiprocessing/multiprocessing_section.tex}
+%\input{../06_control/control_section.tex}
+\chapter{Control}
+\input{../06_control/introduction.tex}
+\input{../06_control/notation_section.tex}
+\input{../06_control/joint_space/joint_space_section.tex}
+\input{../06_control/cartesian_space/cartesian_space_section.tex}
+\input{../06_control/optimal_control/optimal_control_section.tex}
+\input{../06_control/dmp/dmp_section.tex}
+
+
+\input{../08_path_planning/path_planning_section.tex}
+\input{../085_locatization_and_navigation/localization_and_navigation_section.tex}
+\input{../09_computer_vision/computer_vision_section.tex}
+\input{../10_visualization/visualization_section.tex}
+\appendix
+\input{../A_hardware/hardware_section.tex}
+\input{../07_simulation/simulation_section.tex}
+
+
+
+\printbibliography
+\end{document}

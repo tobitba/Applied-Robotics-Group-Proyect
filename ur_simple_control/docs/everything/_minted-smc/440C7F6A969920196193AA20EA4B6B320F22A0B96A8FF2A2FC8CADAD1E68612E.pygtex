@@ -1,0 +1,23 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{load\PYGZus{}config}\PYG{p}{,} \PYG{n}{getRobotFromConfig}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.control.some\PYGZus{}module.some\PYGZus{}controller}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{someController}
+
+\PYG{k}{if} \PYG{n+nv+vm}{\PYGZus{}\PYGZus{}name\PYGZus{}\PYGZus{}} \PYG{o}{==} \PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZus{}main\PYGZus{}\PYGZus{}\PYGZdq{}}\PYG{p}{:}
+    \PYG{n}{cfg} \PYG{o}{=} \PYG{n}{load\PYGZus{}config}\PYG{p}{()}
+    \PYG{n}{robot} \PYG{o}{=} \PYG{n}{getRobotFromConfig}\PYG{p}{(}\PYG{n}{cfg}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{}  your mainfile code goes here}
+    \PYG{n}{somecontroller}\PYG{p}{(}\PYG{n}{cfg}\PYG{p}{,} \PYG{n}{robot}\PYG{p}{,} \PYG{o}{...}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} set expected behaviour here:}
+    \PYG{c+c1}{\PYGZsh{} the library can\PYGZsq{}t know where the end of a mainfile is \PYGZhy{}}
+    \PYG{c+c1}{\PYGZsh{} so you have to have this here}
+    \PYG{k}{if} \PYG{n}{cfg}\PYG{o}{.}\PYG{n}{real}\PYG{p}{:}
+        \PYG{n}{robot}\PYG{o}{.}\PYG{n}{stopRobot}\PYG{p}{()}
+
+    \PYG{k}{if} \PYG{n}{cfg}\PYG{o}{.}\PYG{n}{save\PYGZus{}log}\PYG{p}{:}
+        \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}log\PYGZus{}manager}\PYG{o}{.}\PYG{n}{saveLog}\PYG{p}{()}
+
+    \PYG{k}{if} \PYG{n}{cfg}\PYG{o}{.}\PYG{n}{visualizer}\PYG{p}{:}
+        \PYG{n}{robot}\PYG{o}{.}\PYG{n}{killManipulatorVisualizer}\PYG{p}{()}
+\end{Verbatim}

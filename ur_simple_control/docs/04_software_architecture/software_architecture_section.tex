@@ -1,0 +1,698 @@
+\chapter{SMC Software architecture}
+\section{Robot classes}
+Ideally, we want the same controller to run on different robots.
+This is achieved by having generic robot classes,
+and using generic calls to get things like Jacobians.
+Of course, different types of robots have different additional
+features and functions, but as much as possible is shared.
+For example mobile robots have an ``end-effector'',
+which is their base position, and this allows for 
+use of the same Cartesian controllers on the mobile robot
+as on manipulators (otherwise you'd have to have 2 identical functions
+for path following for example).
+
+Importantly, if applicable, a robot can ``switch'' between 
+these classes by selecting a \fbox{\texttt{control\_mode}}.
+This means that if one sets \fbox{\texttt{base\_only}} mode
+on a mobile robot with an arm, the robot will only give
+its base's position, velocity and Jacobian. If a Cartesian controller
+is called, the goal error will be computed for the base's position
+instead of the end-effector, and the actuation will be commanded
+only to the base instead of the whole robot (all other control inputs
+are set to 0).
+Of course, some controllers don't make sense unless a particular
+kind of robot and control mode are used - in the code this is denoted
+with type assertions.
+
+In code, the classes of robots are referred to as interfaces.
+This is because capabilities are, to a certain extend, modular. For example
+a dual arm mobile robot has the same mobile base interface as a single arm mobile robot,
+and this structure allows for less code.
+The existing interfaces robots are:
+\begin{itemize}
+		\item \fbox{\texttt{MobileBaseInterface}} - functions for a base planar joint 
+		\item \fbox{\texttt{SingleArmInterface}} - functions for a kinematic chain with a single end-effector
+		\item \fbox{\texttt{ForceTorqueSensorInterface}} - functions for managing a force/torque sensor like 
+				basic low-pass filtering. Combined with SingleArmInterface 
+				to form ForceTorqueOnSingleArmWrist for manipulators
+				with a force/torque sensor embedded in the wrist of the arm
+				(has functions to map the wrench to the end-effector frame etc)
+		\item \fbox{\texttt{DualArmInterface}} - functions for managing a dual arm robot. Inherits 
+				from SingleArmInterface as that allows controllers for SingleArmInterface
+				to be applied to the absolute frame via the absolute-relative
+				frame transformations. Additionally, each arm can be controlled individually,
+				or both simultaneously
+				via the corresponding control modes.
+		\item \fbox{\texttt{WholeBodySingleArmInterface}} - functions for a mobile robot with a single manipulator.
+				The base and the arm can be controlled separately or together.
+		\item \fbox{\texttt{WholeBodyDualArmInterface}} - functions for a mobile robot with a single manipulator.
+				The base and (either of) the arms can be controlled separately or together.
+\end{itemize}
+
+\subsection{AbstractRobotManager}
+AbstractRobotManager is the base class for all robots. 
+It provides the most generic functionality,
+and specifies what specific robots need to have implemented.
+The table of relevant generic functions 
+is given in \ref{table-abstract-robot} (code bookkeeping like
+starting the visualizer or connecting to the robot is skipped).
+
+\begin{table}[h!]
+\centering
+\label{table-abstract-robot}
+\begin{tabular}{c | p{9cm}}
+\textbf{Attribute/Function} & \textbf{Description}\\
+\hline 
+control\_mode & enum for determining control mode. 
+options are whole\_body, base\_only, upper\_body, 
+	   left\_arm\_only, right\_arm\_only \\
+\hline 
+model & Pinocchio model of the robot. this is a getter function via Python's @property  \\
+\hline 
+data & Pinocchio data for the robot. this is a getter function via Python's @property  \\
+\hline 
+\_args & all arguments, including defaults. works
+as a Config struct\\
+\hline 
+q & vector of joint positions, $ q \in \mathbb{R}^{nq}  $. this is a getter function via Python's @property \\
+\hline 
+v & vector of joint velocities, $ v \in \mathbb{R}^{nv}  $. this is a getter function via Python's @property  \\
+\hline 
+comfy\_configuration & decent hand-defined home position \\
+\hline 
+forwardKinematics() & updates frame positions. called automatically in ControlLoopManager  \\
+\hline 
+getJacobian() & returns the Jacobian. Always in the body frame. The actual frame depends on the control mode.   \\
+\hline 
+sendVelocityCommand(v) & sends command to real robot, or integrates by 
+$ \Delta t  $ in simulation. called automatically in ControlLoopManager  \\
+\hline 
+stopRobot() & stops the robot however it should (sometimes sending $ v =0  $ is not enough) \\
+\hline 
+setFreedrive() and stopFreedrive() & toggle freedrive, or leadthrough - whatever allows you to move
+the robot manually \\
+\hline 
+openGripper() and closeGripper() & open/close gripper. usually build upon setPosition(p) 
+in the gripper driver, but in nearly all cases we just need this\\
+\end{tabular}
+\caption{Generic functions available on all robots}
+\end{table}
+
+\subsection{Mobile base}
+There's a differential drive base and an omnidirection base.
+The differential drive is modelled as an $ SE (2)  $ joint with
+linear velocity control input for the $ y  $ direction (pointing forward)
+and rotational velocity control input $ \dot{\theta}  $, i.e.
+\begin{equation}
+u_{ \text{diff drive} } = 
+\begin{bmatrix} 
+v_{ x } \\
+0\\
+\dot{\theta}
+\end{bmatrix} 
+\end{equation}
+with position being 
+$ q = \begin{bmatrix} x & y & \theta \end{bmatrix}^{ T }   $. 
+Importantly, Pinocchio treats instead uses a complex number for
+rotations in 
+$ SE (2)  $, i.e. 
+$ q = \begin{bmatrix} x & y & \cos(\theta) & \sin(\theta) \end{bmatrix}^{ T }      $
+%The reason we model the differential drive this way is because
+%that's the control interface we get on the robot Heron in the lab
+%(we don't get wheel access). But 
+By assuming the no-slip setting, controlling
+wheel speeds or the desired twist are equivalent.
+
+The fully actuated base (ex. pseudo-omnidirectional) uses
+\begin{equation}
+u_{ \text{fully actuated} } = 
+\begin{bmatrix} v_{ x }\\ v_{ y } \\ \dot{\theta} \end{bmatrix} 
+\end{equation}
+
+\begin{table}[h!]
+\centering
+\label{table-mobile-base-interface}
+\begin{tabular}{c | p{9cm}}
+\textbf{Attribute/Function} & \textbf{Description}\\
+\hline 
+base\_SE2\_pose() & returns position as 
+$ \begin{bmatrix} x & y & \theta \end{bmatrix}   $\\
+\hline 
+T\_w\_b & returns the transformation from the world
+frame $ \left\{ w \right\}   $ to the end-effector frame 
+$ \left\{ b \right\}   $, i.e. $ T_{ w }^{ b } \in SE (3) $. it's a getter via Python's @property\\
+\hline 
+T\_w\_e & returns the same as T\_w\_b, but represents an ``end-effector'' frame.
+it's an evil hack to use some SingleArmInterface controllers with no additional code\\
+\hline 
+getJacobian() & returns 
+$   J = \begin{bmatrix} 
+		R_{ w }^{ b } & 0 \\
+		0 & 1
+\end{bmatrix} $,
+meaning it maps velocities in the base's frame $ \left\{ b \right\}   $ 
+to world velocities.
+\\
+\end{tabular}
+\caption{Mobile robot specific functions.}
+\end{table}
+
+\paragraph{How to run}
+Run an applicable script with the following arguments:
+\begin{itemize}
+		\item just the diff drive base: \fbox{\texttt{\ttfamily--robot mir}}
+		\item just the fully actuated base: \fbox{\texttt{--robot mir  --fully-actuated-base}} 
+		\item diff-drive on single arm mobile robot: \fbox{\texttt{--robot mir --mode base\_only}}
+		\item fully-actuated on dual arm mobile robot: \fbox{\texttt{--robot myumi --mode base\_only}}
+\end{itemize}
+
+
+\subsection{Single arm interface}
+The SingleArmInterface covers the functionality of single arm robots (manipulators), 
+i.e. of articulated robots. 
+None of the controllers assume 6 dofs,
+and there are controllers that exploit the additional degrees of freedom
+which will be covered in the controllers section.
+
+The relevant functions are given in table \ref{table-single-arm-interface}.
+
+\begin{table}[h!]
+		\centering
+		\label{table-single-arm-interface}
+		\begin{tabular}{c|p{7cm}}
+\textbf{Attribute/Function} & \textbf{Description}\\
+\hline 
+T\_w\_e & returns the transformation from the world
+frame $ \left\{ w \right\}   $ to the end-effector frame 
+$ \left\{ e \right\}   $, i.e.$ T_{ w }^{ e } \in SE (3) $. it's a getter via Python's @property\\
+\hline 
+getJacobian() & returns the \textbf{body Jacobian} $ J \in \mathbb{R}^{6 \times nv}  $
+from the world to the end-effector frame \\
+\hline 
+computeManipulabilityIndex() & computes the manipulability index
+$ m = \sqrt{\det (J J^{ T })}  $ \\
+\hline 
+computeManipulabilityIndexQDerivative() & computes the derivative of the manipulability index
+$ \frac{\partial m}{\partial q}   $ via the derivatives of forward kinematics\\
+		\end{tabular}
+		\caption{Functions of the single arm interface}
+\end{table}
+
+
+\paragraph{How to run}
+Run an applicable script with the following arguments:
+\begin{itemize}
+		\item for UR5e robot \fbox{\texttt{--robot ur5e}}
+		\item for one of YuMi's arms \fbox{\texttt{--robot myumi --control-mode left\_arm\_only}}
+\end{itemize}
+
+\subsection{Dual arm robots}
+The DualArmInterface covers the functionality of dual arm robots,
+which are simply 2 manipulators.
+None of the controllers assume 6 dofs per arm,
+and there are controllers that exploit the additional degrees of freedom
+which will be covered in the controllers section.
+The left arm is referred to with the index $ l  $, and the right with $ r  $.
+In the code we assume that both arms are the same and have
+the same number of dofs $ nql = nqr  $.
+
+Each arm can be controlled separately via their control modes,
+\fbox{\texttt{left\_arm\_only}} and \fbox{\texttt{right\_arm\_only}}.
+This means that \fbox{\texttt{q}} returns only the joint configuration of the left or the right arm,
+\fbox{\texttt{T\_w\_e}} returns $ T_{ w }^{ l }  $ or $ T_{ w }^{ r }  $ respectively and so on.
+Attributes like \fbox{\texttt{nq}} and \fbox{\texttt{nv}} function accordingly.
+
+The two arms can be controlled simultaneously with
+control mode \fbox{\texttt{upper\_body}},
+and if the robot isn't mobile also with \fbox{\texttt{whole\_body}}.
+In this case $ q  $ returns the joint configuration of both arms concatenated together.
+The convention is that the left arm joints are given first,
+i.e. 
+$ q = \begin{bmatrix} q_{ l_{ 1 } } & \dots q_{ l_{ nq l } } & 
+q_{ r_{ 1 } } & \dots  & q_{ nqr }\end{bmatrix} ^{ T }   $.
+The Jacobian is combined arm Jacobian and is also simply the concatenation of
+the single arm Jacobians:
+\begin{equation}
+\begin{bmatrix} 
+v_{ l } \\
+v_{ r }
+\end{bmatrix} =
+\underbrace{\begin{bmatrix} J_{ l } & 0 \\
+		0 & J_{r }
+\end{bmatrix}}_{ J } 
+\begin{bmatrix} 
+q_{ l } \\
+q_{ r }
+\end{bmatrix} 
+\end{equation}
+
+However, the most useful way is to control the robot with the concept of an absolute frame
+$ T_{ w }^{ abs }  $:
+\begin{equation}
+T_{ w }^{ abs } = \text{interpolate } (T_{ w }^{ l }, T_w^{ r }, 0.5)
+\end{equation}
+where interpolate() interpolates between the first and the second
+$ SE (3)  $ object with the parameter $ s \in [0,1]  $. 
+In other words, the absolute frame is ``middle frame'' between the two arms.
+Often, we want to specify the end-effector poses of the arms in relation
+to the absolute frame. The transformation between the absolute frame and the
+end-effector frames is called the relative frame. It does not need to be symmetric.
+In the code we use $ T_{ abs }^{ l }  $ and $ T_{ abs }^{ r }  $. If these two frames
+are fixed, we can use a single arm controller strategy on the absolute frame,
+and let the code map to both arms via their relative transformations behind the scenes.
+In the cart-pulling problem, this means we can define the desired trajectory for
+the handlebar as the desired trajectory of the absolute frame,
+and automatically get the trajectories for the left and right end-effector 
+since both grasp the handlebar rigidly.
+More on this in the control section.
+
+
+The relevant functions are given in table \ref{table-dual-arm-interface}.
+
+\begin{table}[h!]
+		\centering
+		\label{table-dual-arm-interface}
+		\begin{tabular}{c|p{7cm}}
+\textbf{Attribute/Function} & \textbf{Description}\\
+\hline 
+T\_w\_e & depending on the mode, it returns
+$ T_{ w }^{ l }, T_{ w }^{ r }  $ or $ T_{ w }^{ abs }  $. 
+it's a getter via Python's @property\\
+\hline 
+[TODO] random convenience function & random convenience function description
+		\end{tabular}
+		\caption{Functions of the dual arm interface}
+\end{table}
+
+\subsection{Single arm mobile robots}
+These are manipulators on a mobile base. They are referred to as
+WholeBodySingleArmInterface.
+All functions work as expected depending on the control mode.
+\paragraph{[TODO]: write Jacobians for each control mode (already in code, but needs to be written)}
+
+\subsection{Dual arm mobile robots}
+These are dual manipulators on a mobile base. They are referred to as
+WholeBodyDualArmInterface.
+All functions work as expected depending on the control mode.
+\paragraph{[TODO]: write Jacobians for each control mode (already in code, but needs to be written)}
+
+\subsection{ForceTorqueSensorInterface}
+TODO: writeabout it
+\begin{itemize}
+		\item bias estimation on by default, happens every time you start 
+		\item f/t sensor filtering is moving average AND THEN a low-pass filter
+		\item atm we only have direct force feedback control
+\end{itemize}
+
+
+\section{Controllers}
+\subsection{ControlLoopManager}
+Every controller is written as a function which is inserted into 
+\fbox{\texttt{ControlLoopManager}}, which handles real-time-plotting,
+logging, communication with the robot if running on hardware,
+and ensures the commands are sent at a prescribed frequency ---
+it simply calls \fbox{\texttt{sleep(1/freq - time\_spent\_computing)}}.
+In other words, controllers are managed with composition over inheritance.
+
+Every command velocity is saturated (clipped) to the maximum velocity allowed by the robot.
+This is defined in RobotManager.sendVelocityCommand() and is always applied.
+
+An important feature of ControlLoopManager is \fbox{\texttt{history}} or
+\fbox{\texttt{PastWindow}} which is a dictionary (hash map) of circular queues keeping 
+whatever quantities the user selects. For example,
+in the cart-pulling case, we want to keep track of the path the base traversed.
+The size of the past window is determined by the 
+\fbox{\texttt{--past-window-size}} argument. It determines the number
+of iterations saved, meaning that the actual time saved depends on the control
+frequency as well.
+
+Logging is handled similarly, with a dictionary of lists (linked lists)
+which save whatever quantity the user selects.
+These can be pickled (Python's serialization module) to a file.
+Note that the whole of Logger class is pickled so that metadata
+is also stored conveniently.
+There is code to plot logs, and it assumes that what's saved are vectors of 
+floating points. 
+In total, it looks like the following:
+
+\begin{algorithm}[H]
+\caption{ControlLoopManager.run()}
+\begin{algorithmic}[1] % The [1] adds line numbers
+\Procedure{ControlLoopManager.run}{cfg, robot\_manager, control\_loop}
+\While{not breakFlag}
+    \State start\_time $\gets$ current\_time()
+    \State robot\_manager.\_step() - \textit{updates kinematic chain etc}
+    \State breakFlag, log\_item, past\_item = control\_loop(..., cfg, robot\_manager, past\_window, t)
+    \State log.update(log\_item)
+    \State past\_window.update(past\_item)
+    \State visualizer.update() - \textit{executed in parallel process}
+    \State end\_time $\gets$ current\_time()
+    \State sleep(1/freq - (end\_time - start\_time))
+\EndWhile
+\EndProcedure
+\end{algorithmic}
+\label{cart-reference-algorithm}
+\end{algorithm}
+Importantly, ControlLoopManager listens and handles the \fbox{\texttt{CTRL+C}} (SIGINT) signal
+and stops the robot before exiting.
+
+
+\subsection{ControlLoopTemplates}
+To avoid code copy-pasting, there is one more optional layer of composition.
+The two most important templates are \fbox{\texttt{PointToPointTemplate}}
+and \fbox{\texttt{PathFollowingTemplate}}. These compute 
+errors to the goal point, or to the next path point respectively.
+They also save the expected logging items (ex. goal error over time)
+and likewise manage the history dictionary. Both can still be expanded
+in the same manner.
+
+Since this is optional, it won't be explored further here.
+
+\subsection{GenericControlLoop} 
+This serves simply to demonstrate what every control loop must have to 
+fit the framework:
+\begin{minted}[mathescape, linenos]{python}
+def genericControlLoop(
+    X: Any,
+    args: Namespace,
+    robot: AbstractRobotManager,
+    t: int,  # will be float eventually
+    past_data: dict[str, deque[np.ndarray]],
+) -> tuple[bool, dict[str, np.ndarray], dict[str, np.ndarray]]:
+    breakFlag = False
+    log_item = {}
+    save_past_item = {}
+
+    # compute breakFlag and v_cmd however you want
+
+    robot.sendVelocityCommand(v_cmd)
+
+    log_item["q"] = robot.q
+    return breakFlag, save_past_item, log_item
+\end{minted}
+
+To make control\_loops convenient to use when writing main files,
+the idea is to write a small wrapper function which instantiates
+a \fbox{\texttt{ControlLoopManager}} for the given
+\fbox{\texttt{control\_loop}}.
+This usually looks like
+\begin{minted}[mathescape, linenos]{python}
+def genericController(
+    X: Any,
+    args: Namespace,
+    robot: AbstractRobotManager,
+	run=True
+) -> ControlLoopManager | None:
+    """
+    GenericController
+	-----------------
+	description
+	"""
+    assert type(X) == what_it_should_be
+	controlLoop = functools.partial(genericControlLoop, X, args, robot)
+    log_item = {
+        "qs": np.zeros(robot.nq),
+        "dqs": np.zeros(robot.nv),
+        "dqs_cmd": np.zeros(robot.nv),
+        "err_norm": np.zeros((1,)),
+    }
+	save_past_item = {}
+    loop_manager = ControlLoopManager(robot, controlLoop, args, save_past_item, log_item)   
+    if run:
+         loop_manager.run()
+    else:
+         return loop_manager
+\end{minted}
+The \fbox{\texttt{partial(X,...)}} allows passing additional arguments
+to \fbox{\texttt{controlLoop}} while preserving 
+\fbox{\texttt{ControlLoopManager}} API.
+The if-run serves as a hot-fix for interfacing with ROS2. 
+More on that in Appendix \ref{sec-ros2}.
+
+
+\input{../04_software_architecture/multiprocessing_section.tex}
+
+
+
+\section{Quality of life features}
+\subsection{Visualizer}
+It's Meshcat. It visualizes the robot and the end-effector frame. 
+It visualizes trajectories and plans as a filtered series of frames in case of poses,
+or points in case of positions.
+The visualizer runs as a separate process, and does not slow down control on the main process.
+
+For the purposes of validating plans, there is a premade map with boxes as obstacles,
+visualized as such. Visualizing arbitrary boxes and sphere is straight-forward,
+but no convenience code is provided.
+
+\paragraph{How to run}
+Opens in the browser if the \fbox{\texttt{--visualizer}} argument is provided (on by default,
+can be turned off with \fbox{\texttt{--no-visualizer}}). 
+
+\subsection{Plotter}
+There is a basic real-time plotter implemented in Matplotlib. It simply
+plots the most recent logs (stored in a circular queue) in real time. 
+The plotter runs as a separate process, and does not slow down control on the main process.
+
+\paragraph{How to run}
+Opens in a new window if the \fbox{\texttt{--plotter}} argument is provided (on by default,
+can be turned off with \fbox{\texttt{--no-plotter}}). 
+Each new control loop spawns a new plotter (destroying the previous window
+and then opening a new one), which can be a bit annoying.
+
+
+
+
+
+\section{Suggested workflow}
+\label{sec-suggested-workflow}
+Here a typical workflow to developing and testing a novel program,
+possibly with a new controller, is outlined.
+To begin, a typical main file is described.
+
+\subsection{Writing a new program/script}
+\subsubsection{Main file structure}
+\begin{minted}[mathescape, linenos]{python}
+from smc import load_config, getRobotFromConfig
+from smc.control.some_module.some_controller import someController
+
+if __name__ == "__main__":
+    cfg = load_config()
+    robot = getRobotFromConfig(cfg)
+
+    #  your mainfile code goes here
+    somecontroller(cfg, robot, ...)
+
+    # set expected behaviour here:
+    # the library can't know where the end of a mainfile is - 
+    # so you have to have this here
+    if cfg.real:
+        robot.stopRobot()
+
+    if cfg.save_log:
+        robot._log_manager.saveLog()
+
+    if cfg.visualizer:
+        robot.killManipulatorVisualizer()
+\end{minted}
+
+First one specifies the imports. The library forces you to type out the 
+whole import path
+to force you to get familiar with where different controllers or 
+utilities are implemented.
+This is so because you are then one step closer to 
+looking at the code you are importing,
+which you are highly encouraged to do.
+Very often, you will get strange looking behaviour due to a 
+particular controller's features or limitations.
+The only way to fix those is to understand which code is actually being run,
+and then either changing you approach, or writing new controllers.
+
+Following any potential class or function definitions comes the main
+function where you load the config and the robot, 
+and run the desired controllers one after the other.
+This architecture introduces some delay between controllers,
+but it is only around $\approx$100ms.
+If this ruins the robot's performance, you are almost
+certainly applying an incorrect control strategy ---
+the robot should be motionless when a controller exits.
+Here it's very important to note that you can switch 
+between different controller's within one control loop,
+if control-switching behaviour is what you want
+(just write a control loop that calls the other control loops 
+according to desired criteria).
+
+
+At the end of the script, you have to put in the following:
+\begin{itemize}
+		\item \fbox{\texttt{stopRobot()}} 
+		\item \fbox{\texttt{log\_manager.saveLog()}} 
+		\item \fbox{\texttt{killManipulatorVisualizer()}} 
+\end{itemize}
+You will de facto always want these functions, and they have not been automated away otherwise.
+This is one of the drawbacks of keeping the core of the library as simple as possible.
+
+\subsubsection{Dealing with parameters and settings}
+Nearly all controllers come with a set of parameters which need to be
+tuned for the task at hand.
+Sometimes we need to run the same main file, and just change
+the value of a few parameters.
+This is ideally achieved through argument passing.
+Depending on the situation, one needs to change many settings
+and parameters (and then tune them one at a time).
+To avoid having to type a very long sequence of arguments,
+they should be store in a local config.yaml file.
+
+SMC offers these capabilities in the following way.
+In total, there is a dizzying array of different parameters
+and settings to set. Having them all outputed every time
+would make the \fbox{\texttt{--help}} option useless.
+Hence, they are loaded dynamically based on what's impored
+through a bit of Python magic.
+With a little more magic, the dynamically loaded 
+\fbox{\texttt{ConfigClass}}es also dynamically create an argument
+parser.
+In total, parameters are handled as follows:
+\begin{enumerate}
+\item Various ConfigClasses are loaded dynamically and
+	put into \fbox{\texttt{GlobalConfig}}. Every parameter
+	and setting is put to a sane default value.
+\item Optionally, a config file is read by providing
+	\fbox{\texttt{--config\_file ./path/to/file}},
+	and the appropriate values are overriden.
+\item Finally, the arguments are processed and take ultimate
+	precedence.
+\end{enumerate}
+
+\paragraph{Defining a config class}
+When developing a controller or a project,
+it is also extremely likely that you will want to define 
+your own ConfigClass, which will also generate appropriate arguments.
+This is very simple to do:
+\begin{minted}[mathescape, linenos]{python}
+from smc.bookkeeping.registry import ConfigRegistry
+from dataclasses import dataclass, field
+
+ConfigRegistry.register("your_control")
+@dataclass
+class ConfigYour:
+    arg1: str = field(default="", metadata={"help": "arg1 does ..."})
+    arg2: int = field(default=0, metadata={"help": "arg2 does ..."})
+\end{minted}
+When running your main file, if \fbox{\texttt{ConfigYour}} is imported
+at any point, the appropriate arguments will be generated.
+The values are accessible from a \fbox{\texttt{GlobalConfig}} instance
+cfg via the registered name, in this case
+\fbox{\texttt{cfg.your\_config.arg1}}.
+
+On this note, as a rule of thumb, nearly all magic numbers 
+should be arguments. For example: 
+\begin{itemize}
+	\item controller gains
+	\item regularization parameters, ex. Levenberg-Marquadt damping
+	\item numerics parameters, ex. the minimum detectable force
+	\item simulation parameters, ex. added simulated noise amplitude
+	\item problem settings, ex. which interpolator you are using
+	\item ...
+\end{itemize}
+This will allow you to quickly tune your control strategy, 
+which you will practically speaking always have to do,
+regardless of the particular application.
+
+
+
+\subsection{Writing a new controller}
+Copy-paste the most similar existing controller as a starting point.
+Put it in the main file.
+
+If you end up writing 3 or more controllers for the same control problem,
+write a ControlLoopTemplate for the problem.
+This will minimize the amount of code you have, and the you will avoid 
+code copy-pasting. 
+Both of these are fundamental software engineering principles,
+following of which will give you the following benefits:
+\begin{itemize}
+\item If you need to change the structure of the problem, you
+		change it in only one place. This will save some time,
+		but more importantly it will \textbf{prevent hidden logic errors}
+		stemming from not updating all instances 
+		(this is practically guaranteed to happen otherwise).
+\item It will force you to think about the structure of your problem
+		and to disentangle components. This will increase your 
+		understanding of the problem, and which structure is responsible for what
+		(ex. what is the planner's job and what is the controllers job).
+		Finally, it will make it easier to test performance.
+\end{itemize}
+
+\subsection{Assessing performance}
+Quality of a robot's performance can often be visualize determined,
+which is one of the reasons to use the visualizer.
+To aid in this process, you should consider expanding on default visualization
+which includes just the robot. Plotting paths and obstacles
+will go a long way in seeing where the controller fails.
+Numeric criteria start being useful only when performance differences
+are not visually obvious.
+More on visualization in the visualization section.
+
+At some point, generic log analyzers will be implemented. 
+At the moment, you are left to your own devices when it comes
+to numeric performance measurements. 
+In any event, you will want to save logs
+to compare different runs of your experiment (both visually and numerically).
+The starting of points are in 
+\fbox{\texttt{examples/log\_analysis}}.
+
+\subsection{Preparing for a hardware experiment}
+The experiment should look same way in real life as it does
+in simulation, or it will be different in an expected or reasonable way.
+However, this will not be the case unless specific preparatory steps are taken.
+To repeat:
+\newline
+\vspace{10pt}
+\noindent\fbox{
+\parbox{\textwidth}{
+\textbf{THE EXPERIMENT WILL GO BADLY, 
+POTENTIALLY RESULTING IN DAMAGES AND INJURY,
+UNLESS YOU FOLLOW THE CHECKLIST BELOW! }
+}}
+\vspace{10pt}
+
+\vspace{10pt}
+\fbox{
+\parbox{\textwidth}{
+\underline{Hardware experiment preparation checklist}
+\begin{enumerate}
+\item Have a working controller in simulation (looks OK in the visualizer).
+\item Make sure the execution is fast enough with \fbox{\texttt{--verbose}} - 
+	this prints out control frequency deadline misses - a few are OK as 
+	we don't provide real-time guarantees, but
+	continuous printouts mean you have a delay.
+\item If interacting with the environment, write functionality to simulate 
+	the interaction, ex. add artificial readings to the force sensor 
+	in the control loop to simulate contact,
+	and make sure you get the expected behaviour.
+\item Connect to the robot. Run the experiment in simulation with \fbox{\texttt{--start-from-current-pose}} argument
+		to see the concrete expected motion of the robot.
+\item When running the experiment:
+\begin{itemize}
+	\item If running for the first time, use a smaller maximum velocity with
+		\fbox{\texttt{--max-v-percentage=0.1}} or similar.
+	\item \textbf{HAVE YOUR HAND ABOVE THE EMERGENCY STOP BUTTON FROM EXPERIMENT START TO FINISH.}
+	\item \textbf{STOP THE ROBOT UPON ANY UNEXPECTED BEHAVIOUR.} 
+		You are most likely not modelling an important part of the experiment,
+		or there was an issue in the communication to the robot.
+\end{itemize}
+\item If the experiment fails:
+\begin{itemize}
+	\item Inspect the logs from the simulation, and from the hardware experiment.
+	If everything looks similar, you are probably not logging all relevant quantities.
+	Introduce them and repeat the experiment.
+\item If the problem persists, you might have a hardware fault. Run the simplest possible
+		scripts until you find the same problem.
+\item If you can not figure out what the problem is, contact a person responsible for hardware
+		and explain the problem to them as exactly as possible.
+\end{itemize}
+\end{enumerate}
+}}
+\vspace{10pt}
+

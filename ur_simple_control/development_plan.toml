@@ -1,0 +1,1163 @@
+[project_plan]
+name = "smc development plan"
+description = """
+the simple manipulator control library is my phd's flagship software. it will forever retain its essential characteric -  get it the robot's urdf, a function to read the robot's state as a vector of number, a function to send the velocity or torque command input, and it will give you the simplest possible API to write your control loop  as a few lines of math. on top of that, batteries are included in the sense that it already provides the basic controllers  noone wants to be bothered with writing like clik or joint movements. 
+
+however, circumstances led to a significat increase of its scope: supporting mobile robots, torque-controlled robots,  various optimal control libraries, interactive tuning, dual arm support, whole-body control, ros interface, path planning, multi-robot support, visual servoing and more. literally none of these things follow the core of idea of simplicity and of a limited scope. however, none of them hurt the basic functionality either - they are modular add-ons to the basic scope of simple wrappers around control math. you can use the library as originally intended without interacting or even installing those extensions. 
+
+this project became and continues to be collection of everything i've ever done in robotics. but, crucially, since there is a common desing pattern over the whole code-base, these parts can mixed and matched, making all future projects easier because of all the pre-solved parts being easily reusable. so in any event i am benefiting from  the library's development. 
+
+the key question is whether it can be useful to other people. if so, doing some amount of additional work to polish it makes sense. looking at the wider ros ecosystem, other engineers' opinions of it,  and the lack of anything else of the sort out there, it seems like there will be people interested in it - specifically those who want to implement their own control stacks.  at that point you need to code anyway, and this library will save you a ton of time because there's so much less overhead than ros. on a personal level, it seems very valuable to develop and manage a large codebase too. so the investment into making it cohesive, well documented and easy to use for newcomers (both for shipping and with examples) will be made. 
+
+since i have other things to do, the progress will be very spread out in time and incremental. this makes planning all the more important. the specific sub-projects and feature are outlined in their separate action items. the deadline for the next version is the beggining of the next academic year (2025/2026) so that the new version can be fully employed by the students. 
+
+having that said, this developing this library can't never be priority number 1, unless parts of it are necessary for projects which are priority number 1, i.e. specific papers. the given deadline is just for the next full version, after which a plan and deadline for the next version is to be made. 
+""" 
+priority = 2
+deadline = 2025-09-01
+dependencies = []
+engineering_purpose = """a library for easy and quick robotics prototyping"""
+personal_purpose = """easier time programming robots, flagship software for future employment,
+open source software publication in its own right"""
+# -1 means it should be a sum over sub-items
+hours_required = 0
+is_done = false
+
+
+[[project_plan.action_items]]
+name = "critical debugging"
+description = """
+catch-all for bugs and big performance issues.
+"""
+priority = 1
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+whatever we have is useless if it's broken due to a line or two
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "slumi meshcat loading takes forever"
+description = """
+for some fucking reason after updating to python 3.14 the starting of meshcat in a side process literally takes 10GB of RAM and it takes a solid 2 minutes to load. after that everything's fine. anyway, the way this side process is started needs to be changed. in fact, this might not even have to run in a side process as meshcat already runs it's own server process. other robots also take longer, but not this much.
+
+1. first you need to test if viz.display() exits immediately, regardless of whether the displaying is done. if yes, just don't start it as a side process.
+2. see what the fuck changed in the underlying _Popen, it could be copy-pasting the passed arguments incorrectly, idk. if it's in an official update, great, if not, we're kinda boned. and it's this 100% beucase starting meshcat directly is fine (few seconds as before), and loading of model, visual model and collision model directly also takes the expected few seconds as before.
+3. alternatively, if the side-process startup can't be helped, it might be better to load the robot model again, but in the viz process.
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = []
+purpose = """
+we need to visualize the robot, and we can't have startup be 2 minutes - it completely destroys the workflow
+"""
+hours_required = 0
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "implement actual impedance control (copy solution)"
+description = """
+right now you have direct force feedback. this is no good as it can't be tuned properly. instead you need to have actual second-order error dynamics which act like a spring. master students working on heron implemented this so take as much as possible from there. this is absolutely critically necessary for the remote control project group. they can tune the controller, but they can't implement it (i tried that already lmao)
+"""
+priority = 1
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+code copy-pasting is bad
+"""
+hours_required = 0
+is_done = false
+
+
+[[project_plan.action_items.action_items]]
+name = "actually use processmanager refactor"
+description = """
+it's literally written already. but of course there will be some debugging to get everything to work. but just do it
+"""
+priority = 1
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+code copy-pasting is bad
+"""
+hours_required = 0
+is_done = true
+
+[[project_plan.action_items]]
+name = "less critical debugging"
+description = """
+catch-all for bugs and big performance issues in modules which i don't care too much about
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+whatever we have is useless if it's broken due to a line or two
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "casadi ocp"
+description = """
+this has not been touched for a year at least
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+there have been like 2 refactors since i last even saw this
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "manipulator comparison visualizer"
+description = """
+this has not been touched for a year at least. and it didn't work even then lmao
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+there have been like 2 refactors since i last even saw this
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "2d path visualizer"
+description = """
+well. turns out we have stolen albin's code in visualization. and there's also the 2D visualization developed for cart navigation.
+this should be merged and unified
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+there have been like 2 refactors since i last even saw this
+"""
+hours_required = 0
+is_done = false
+
+
+[[project_plan.action_items.action_items]]
+name = "use util.numdiff if you need a numdiff"
+description = """
+there's a non-finished commented-out generic numdiff function in util. i'm pretty sure this is reimplement elsewhere (traj gen?). anyway, it should obviously be implemented only in one place
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+there have been like 2 refactors since i last even saw this
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "encapsulating ellipses for faster self-collision detection"
+description = """
+it's good to have this as an option in optimal control
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+this was never finished
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "optimal control for path following"
+description = """
+1) shouldn't be done via points, but instead the path parameter should be a decision variable as well. if you use points, you've baked in timing - but you want the mpc to handle the timing for you
+2) even if you want to use points, they should still be sampled from interpolation from the interpolator in the passed motion plan.
+
+point being path following optimal control needs to be re-done with this. if you don't do it properly - delete it
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+it was broken even when i wrote it - either fix it or delete it
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "mpc p2p control loops"
+description = """
+are all the same. so just have one, and use that in the different functions that set up the ocp and then just warmstart and resolve inthe control loop
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+code copy-pasting is bad
+"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "dual arm optimal control"
+description = """
+it's broken because it uses the wrong jacobian. either force it to use a different jacobian, or you yourself define a different jacobian
+"""
+priority = 2
+deadline = 2099-01-31
+dependencies = []
+purpose = """
+code copy-pasting is bad
+"""
+hours_required = 0
+is_done = false
+
+
+[[project_plan.action_items]]
+name = "smc refactor"
+description = """
+during the development of code for the wara challenge, a whole bunch of new features have been introduced in the quickest manner possible with absolute disregard for code quality. the biggest issue is the sequence of if's in some many different places. some of the issues are: 
+1) having the same robotmanager class for different robots which makes 
+it unreadable - there's some many ifs you forget which function you're looking at.
+2) ifs for two-armed goals, making it difficult to keep track of which goal is which
+3) having or not having a mobile base - if the robot can't move, there is no point in having navigation, and the code itself should know about this - otherwise you need to think for the computer.  also, in mobile navigation there are times when you do not want all joint variables to be  one big array, which then leads to ugly chopping and slicing over the array. ] this is not something you want to think about when writing navigation algorithms for example -  this separation of concerns needs to be available with its own API. 
+4) ros stuff is tacked-on and it's ugly as it currently is
+
+on top of solving the issues above, the refactoring should also:
+5) ensure separation of concerns
+6) have a clean cut between smc and albin's path planning - smc should just take the output of the path planner and then not see it again.
+7) process manager should be able to support rtp's on a different computer - necessary for smooth integration of remote GPU for computer vision
+8) cut many random todos scattered throughout the code
+9) args from argparse are getting exceedengly long so there should be an option to load them from a config file which can be overwritten with actual arguments.
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = []
+purpose = """
+making new features actually usable
+"""
+hours_required = 0
+is_done = false
+
+
+[[project_plan.action_items.action_items]]
+name = "create/fix type-checking workflow"
+description = """
+modern python should have type declarations for static type analysis.
+this has to be used if the library is to be shipped to serious people.
+it also makes all development substantially easier.
+
+to get this to work you need to know how to set it up,
+and then set it up. the components are the following:
+1) find out how to do static type-checking in python (mypy etc)
+2) find out what linting and other concepts are
+3) learn related python concepts: decorators, type overloading and the rest
+4) find out how to make nvim use this automatically
+5) test different software (different lsp server, different lsp configuration and so on)
+
+additionally, the dependencies should be compiled so that they generate
+python stubs so that type-checking actually works, or whatever else is necessary.
+
+TODO: break this up into smaller action items, this is a classic too big,
+unactionable todo that we are trying to avoid by writing stuff out
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = []
+purpose = """making typing possible - easier code writting and debugging, making library professional-grade"""
+# -1 means it should be a sum over sub-items
+hours_required = 10
+is_done = true
+
+
+[[project_plan.action_items.action_items]]
+name = "introduce typing"
+description = """
+modern python should have type declarations for static type analysis.
+smc does not have these. they are to be put in and leveraged.
+this of course implies that using types works in the nvim setup,
+that the dependencies provide type information etc.
+"""
+priority = 2
+deadline = 2025-09-01
+dependencies = ["create/fix type-checking workflow"]
+purpose = """easier code writting and debugging, making library professional-grade"""
+# -1 means it should be a sum over sub-items
+hours_required = 8
+is_done = true
+
+[[project_plan.action_items.action_items.action_items]]
+name = "introduce smc typing"
+description = """
+create a file or whatever that imports all smc types like robot interfaces so that i can write smc.typing.SingleArmInterface instead of having to import from all over to get the type that i want.
+"""
+priority = 2
+deadline = 2025-09-01
+dependencies = []
+purpose = """qol + reduces #loc"""
+# -1 means it should be a sum over sub-items
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "robotmanager abstract class"
+description = """
+robotmanager needs to be an abstract class, or at least have some abstract functions.
+specific robots then need to provide an implementation of this abstract class.
+having everything in one big class is already untenable.
+robots with ros interfaces should have a ros-less version of functions
+for the pinocchio-only option.
+these can be done via ifs in those functions because 1 if is ok.
+
+various things are to be implemented with interfaces (like 2 arms, which just gives you more functions, but which only make sense if the robot has two arms). interfaces don't exist in python, but you can do multiple inheritance. these extra functions should thus be made available by inheriting stuff like TwoArmsRobot etc. have one such class for simulated robots as they all use the same getq etc.
+
+UPDATE: BTW, this took more like 3 full days than 4 hours. getting OOP right is hard and i have 0 real experience with it. i'm not even sure i got the design right. also, setting the scope was hella difficult. this required both seba's help and chatgpt
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = []
+purpose = """making codebase usable"""
+# -1 means it should be a sum over sub-items
+hours_required = 4
+is_done = true
+
+
+[[project_plan.action_items.action_items]]
+name = "dual arms feature"
+description = """
+UPDATE:
+YOU DEFINITELY HAVE TO THE JOINT JACOBIAN COMMON REFERENCE ABSOLUTE RELATIVE FRAME STUFF.
+DETAILS HAVE BEEN TAKEN A PICTIRE OF, PLUS THERE'S SEBA'S CODE ETC
+robots with 2 arms need 2 targets. these can simply be 2 separate targets,
+but can also be 2 transformations on 1 target - ex. in cart pulling.
+this seems to best be done by having an (abstract) interface
+which a robot inherits to get access to these functions.
+the solution could also be some other OOP concept
+(it seems like a typical OOP-type problem).
+
+they are also much more likely to have
+self-collisions, so a default controller should be set to that.
+
+the question is how should the controllers be refactored to accomodate
+the 2 targets. maybe having 2 completely separate functions is the way to go,
+it's impossible to say without thinking about it concretely - and
+that's a part of this todo
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = ["robotmanager abstract class"]
+purpose = """extending existing control for dual arm robots without compromising
+the cleanliness of existing controllers for single arms"""
+hours_required = 8
+is_done = true
+
+
+[[project_plan.action_items.action_items]]
+name = "mobile base feature"
+description = """
+often we want whole-body control from a single controller,
+but not always (ex. just navigating to a task). 
+thus the mobile base joint needs to be able to be controlled 
+separately. this should not be done by slicing the whole joints vector
+simply because it makes coding more confusing because you then need
+to micromanage the indeces and that detracts from the controller you're writing.
+the todo here is to think of and write the functions to manage the mobile base 
+individually, while retaining whole-body control - these need to coexist.
+this could be implemented as an interface that's inherited or 
+some similar OOP concept, not sure, deciding is a part of the todo.
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = ["robotmanager abstract class"]
+purpose = """making it easy, simple, and error-abstinent to only navigate the base"""
+hours_required = 4
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "whole-body feature"
+description = """
+a generic class that has at least 1 manipulator plus a mobile base. what you do here is give me access to just the arm or just the base - that's it. you can do it by overriding setters or whatever. you don't need to finish it, it just needs to do what's necessary for cart pulling
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = ["robotmanager abstract class", "mobile_base_feature", "dual_arms_feature"]
+purpose = """making it easy, simple, and error-abstinent to only navigate the base"""
+hours_required = 4
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "explicit relationship between controlLoop and ControlLoopManager"
+description = """
+the goal is that they can access each others private, i.e. local variables. could be that controlLoopManager has an controlLoop as an abstractmethod. this is probably the easiest way to go about it. alternatively it could be some more explicit composition than it is now. 
+UPDATE! YOU DON'T WANT OOP, YOU WANT TO DO THIS WITH FUNCTIONAL PROGRAMMING AND COMPOSITION. THIS IS WHAT YOU HAD SO FAR, JUST EXPANDED TO THE NEW CONDITIONS! IT IS THE ONLY SOLUTION THAT MAKES PERFECT SENSE IN THIS CONTEXT!!!! THE ONLY WAY TO FULLFILL ALL THE REQUIREMENTS AND THE ONLY WAY TO CONTINUE WITH THE CURRENT STYLE WHICH MAKES PERFECT SENSE AND JUST NEEDS TO SUPPORT MORE FEATURES!!!
+
+this should get you the following things:
+1) you can decouple visualization commands specific to this control loop from the gloryous math
+2) if there's some oop somewhere in there, you can create control-type based classes, which basically store away repetitive code, like data parsing after receiving something from multiprocessor (could even be in new optional overridable method "processinput")
+3) you made the relationship between controlloopmanager, a controlloop and the function you can all to instantiate and execute everything. there is no cost to calcifying this relationship, while you wrote the perfect documentation - code.
+4) the what's being logged is enforced...
+...
+
+what this buys is that you can remove log_item management from ...
+
+you can also make an argument for why the current setup is optimal. i mean everything works perfectly fine, there is just a bunch of uncessary code around.
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = ["robotmanager abstract class"]
+purpose = """actual process management beyond ducktaping plotter and visualizer to loopmanager and robotmanager"""
+hours_required = 5
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "write out control templates"
+description = """
+setting the controlloopmanager - controlloop relationship to be composition, inspired by the functional programming paradigm is the winner of the previous todo.
+
+now the control stack should be re-written to reflect this. 
+
+the KEY benefit of composition is that you don't need to use any of these templates. but using them in within the core of the library will drastically reduce the amount of code, thereby improving extensibility and maintainability.
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = ["explicit relationship between controlLoop and ControlLoopManager"]
+purpose = """reducing the amount of code, thereby improving extensibility and maintainability"""
+hours_required = 5
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "fix (add) --start-from-current-pose feature"
+description = """
+crucial feature to connect simulation and running on the real robot.
+a bit iffy now due to the separation of abstract, real and simulated robot manager. a hack function on the side can get the job done.
+"""
+priority = 1
+deadline = 2025-01-31
+dependencies = []
+purpose = """actually pre-verifying experiments with simulation"""
+hours_required = 2
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "refactor croco mpc p2p"
+description = """
+you have 4 or 5 literally identical controlloops and it looks (is) stupid. the circle to square is that they need to take in different arguments due to the templates. find how to intelligently package this.
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = []
+purpose = """actually pre-verifying experiments with simulation"""
+hours_required = 3
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "better run or not over controllers"
+description = """
+i have discovered the wonders of decorators. surely there is some decorator i can use instead of a kwarg for run or return controlloopmanager. something that triggers every time you call the controller function which instantiates a controlloopmanager, which puts the constructed control loop manager into a list.
+
+since this is only used for ros2 stuff it doesn't need to be pretty when used for ros2. the idea is to make the rosless version cleaner.
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = []
+purpose = """actually pre-verifying experiments with simulation"""
+hours_required = 3
+is_done = false
+
+
+[[project_plan.action_items]]
+name = "improving extensibility"
+description = """
+there are half-baked or imperfect features in the library. while they do their job OK for now, in the future i will forget about the shitty quirks, will want to add a new feature and will then waste a lot of time first trying to remember how a thing works, then re-writing it, then fighting the causes of the quirks, and only then making the feature i want. so the process will take 3x take then it should. it's better to do the re-design now rather than later
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = []
+purpose = """extensibility is good"""
+hours_required = 5
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "refactor processmanager"
+description = """
+one process manager for every communication protocol is not great and is already a bit out of hand. processmanager should be an abstract class, which is then specialized into "shared_memory_comm_process_manager" or whatever else. 
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = ["explicit relationship between controlLoop and ControlLoopManager"]
+purpose = """reducing the amount of code, thereby improving extensibility and maintainability"""
+hours_required = 6
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "debug storing protobuf in shared memory"
+description = """
+for some reason i can't read the serialized protobuf message after storing it in memory, so i deserialize the protobuf, and then pickle the message to store it in shm. this is obviously idiotic, but there is something evil in the python's hared memory and protobuf.
+
+in any event it has to be fixed
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = []
+purpose = """removing clearly bad things from codebase"""
+hours_required = 5
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "slight client-server refactoring"
+description = """
+call them publisher and subscriber, or server-publisher, server-subsriber, client-publisher and client-subscriber.
+
+also document them better and put in instruction on compiling protobuf messages.
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = ["debug storing protobuf in shared memory"]
+purpose = """good-enough networking from workable half-baked networking"""
+hours_required = 4
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "python stdlib logging instead of printing"
+description = """
+when just printing the --debug-prints, they are all of the same color, 
+and all of same importance. obviously they are not. proper loging
+enables much more possible prints because you can set printing level
+(without 4 ifs per print statement), has colors, has everything you want here.
+
+more importantly, you need to allow different levels of verbosity, or maybe even different variants.
+printing everything or nothing as it is now is already fucked (ex. optimal control printouts eat up everything else)
+"""
+priority = 3
+deadline = 2026-09-01
+dependencies = []
+purpose = """making debug prints substantially more useful and friendly"""
+# -1 means it should be a sum over sub-items
+hours_required = 6
+is_done = false
+
+
+[[project_plan.action_items]]
+name = "extending library scope"
+description = """
+extending the library to do more than what its current structure supports. the proposed features here require restructuring of the library, probably breaking the current API. 
+"""
+priority = 2
+deadline = 2025-09-01
+dependencies = ["robotmanager abstract class"]
+purpose = """depends on the feature"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "rename freedrive to kinesthetic teaching"
+description = """
+we're already doing  kinesthetic teaching with this freedrive, but i'm calling it freedrive. 
+
+to make this more useful, and to make the point better, make the robot run the trajectory after the data is collected. use whatever sensible default, probably the dmp to do this. but it could also be normal trajectories.
+
+if you want to make it slightly fancier, you can have both cartesian and joint space versions.
+"""
+priority = 1
+deadline = 2025-09-01
+dependencies = []
+purpose = """this is way more informative as this is the whole point"""
+hours_required = 30
+is_done = false
+
+
+[[project_plan.action_items.action_items]]
+name = "velocity vs torque control"
+description = """
+some robots are torque controlled, some are velocity controlled.
+to make this be of practical use, torque-level controllers need to be written,
+but since this will happen eventually, a template/interface for
+can be made now. also the API for the torque-level controllers can be written out.
+
+the way to do this would be to add all the variables and function to all robots and then not use them if the robot doesn't support torque control. the reason why is because you can still simulate the dynamics, or even solve the control dynamically and then extracting (integrating, whatever) velocities to command them, like ocp does right now.
+
+NOTE: this is most likely to come into play for own papers requiring proper handling of dynamics.
+"""
+priority = 2
+deadline = 2025-09-01
+dependencies = ["robotmanager abstract class"]
+purpose = """paving the way for torque-level control support"""
+hours_required = 30
+is_done = false
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "torque control on ur5e"
+description = """
+UR released the torque interface for their robots. do the following:
+
+1) install the new firmware onto the robot
+2) install the version of ur_rtde which has support for torque control
+3) write a basic trajectory following controller
+4) compute a torque trajectory for a circle, perform the experiment on the real robot, see the fit
+5) execute a trajectory you obtain from optimal control, see the fit
+6) if required, try to calibrate something
+"""
+priority = 2
+deadline = 2025-09-01
+dependencies = ["dunno, write it down"]
+purpose = """primary - being able to correctly use optimal control, secondary - making this library much more powerful"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "actual process management"
+description = """
+plotter process being owned by controlloopmanager, and visualizer process being owned by robotmanager works fine. 
+
+however, we now have more processes to manage and it's not obvious who should take ownership of them: camera (computer vision) process, networking processes, and future ones which will be added (doing more stuff in more processes seems to be a trend). forcing the user to manually terminate them or to keep adding try-except KeyboardInterrupt blocks dramatically decreases the value of the library because all this is annoying as fuck and makes it seems broken. 
+
+so the bottom line is we need an actual process management class - not for individual processes, but for all of them. this class should, upon termination, do what stophandler in controlloopmanager is doing now. it should be extensible in the sense that you can register however many processes, and it takes ownership of all of them. 
+
+one possibly problematic thing is that control might have to be moved from the main thread, which immediately makes everything annoying - the transition between different controllers has to be on the same thread. writing examples must not be polluted with writing one massive function that's then passed ran as a side process. idk, think of what to do here as a part of the todo.
+"""
+priority = 2
+deadline = 2025-01-31
+dependencies = ["robotmanager abstract class"]
+purpose = """actual process management beyond ducktaping plotter and visualizer to loopmanager and robotmanager"""
+hours_required = 5
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "adding interface to a physics simulator"
+description = """
+for some tasks, having a proper physics simulator is essential.
+it seems the easiest to interface with pybullet, and
+you can refer to how mim people did it.
+"""
+priority = 3
+deadline = 2025-09-01
+dependencies = []
+engineering_purpose = """text"""
+personal_purpose = """text"""
+# -1 means it should be a sum over sub-items
+hours_required = 16
+is_done = false
+
+[[project_plan.action_items]]
+name = "improving portability"
+description = """
+you need to do this if you want other people to use this library.
+"""
+priority = 2
+deadline = 2025-09-01
+dependencies = []
+purpose = """getting this project off the ground, essential for its long term life"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "modularity and dependencies"
+description = """
+this todo boils down to putting "if installed then import"
+everywhere it's logical. there is no point in having optimal control 
+libraries installed, and installing them automatically with the library,
+if you don't plan on using them.
+this makes shipping much simpler as well as some packages are, and will be, annoying
+to install.
+the most important part to nicely cut out is ros.
+"""
+priority = 2
+deadline = 2025-09-01
+dependencies = ["robotmanager abstract class"]
+purpose = """easier shipping, enforces modularity and concern separation further,
+easier maintenance. most important for not relying on ros"""
+hours_required = 2
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "resolving python packaging"
+description = """
+the packaging of the library, as it is now, is barely functional.
+it does not have dependencies clearly written down.
+every import is miles long because you need to go through every possible directory 
+to get anywhere and upon importing in a script it's overly messy for no go reason.
+"""
+priority = 3
+deadline = 2026-09-01
+dependencies = []
+purpose = """fixing long importing, autocompletion, and necessary for professional-grade shipping"""
+# -1 means it should be a sum over sub-items
+hours_required = 6
+is_done = false
+
+[[project_plan.action_items]]
+name = "improving maintainability"
+description = """
+maintainability is not important just for using the library in the future, but also to make the process of adding new feature smoother.
+"""
+priority = 1
+deadline = 2025-09-01
+dependencies = []
+purpose = """maintainability is not important just for using the library in the future, but also to make the process of adding new feature smoother.
+"""
+hours_required = 0
+is_done = false
+
+
+[[project_plan.action_items.action_items]]
+name = "writing tests" 
+description = """
+write some tests too see that:
+a) various parameter combinations work
+b) controllers converge in situations they should converge in
+c) most basic unit tests on some functions (look at how pinocchio does it)
+d) preferably some of this is runnable on the real robot,
+   or at least sim with --start-from-current pose flag
+e) a speedrun of files in examples on the real robot,
+   just to verify everything works 
+
+there is already a bash script that simply runs different examples
+with some different parameters - finish that. this checks whether anything runs,
+and whether things converge. probably a good idea to run some of these multiple times
+in the case they are not supposed to converge every time (if you have crazy init conditions etc).
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-10]
+dependencies = ["smc refactor"]
+purpose = """makes you sleep safe at night, saves a lot of time after writing of a feature -
+you want to debug everything immediately while the changes made are still fresh - it's
+much more annoying if it happens afterward"""
+hours_required = 10
+is_done = true
+
+[[project_plan.action_items.action_items]]
+name = "tidy up typing"
+description = """
+sit down and get typing coverage to 100% or whatever is the limit of reason.
+"""
+priority = 3
+deadline = 2025-09-01
+dependencies = ["create/fix type-checking workflow"]
+purpose = """easier code writting and debugging, making library professional-grade"""
+# -1 means it should be a sum over sub-items
+hours_required = 8
+is_done = false
+
+
+
+[[project_plan.action_items]]
+name = "rewrite into cpp"
+description = """
+rewrite the whole library into cpp, expose everything to python
+via pybind. keep the visualizer and the plotter in python since
+that's not performance critical and they already run as separate processes anyway.
+ideally this is something to be done over the summer, but we'll see.
+"""
+priority = 4
+deadline = 2026-09-01
+dependencies = []
+purpose = """easier future work because bigger codebases really like static typing, 
+more chill coding because you have a compiler, showing i can write cpp, massive speed boost,
+street cred"""
+# -1 means it should be a sum over sub-items
+hours_required = 80
+is_done = false
+
+
+
+
+[[project_plan.action_items]]
+name = "doing miscellaneous todos scattered throughout the codebase"
+description = """
+a whole bunch of implementation finer points were simply skipped in the interest of time,
+and they need to be done because they were written for a reason.
+however, they are not as essential as the todos which were done and which are here,
+otherwise they'd be solved by now.
+"""
+priority = 3
+deadline = 2026-09-01
+dependencies = []
+purpose = """cleaning up codebase from a small million of random skipped items"""
+# -1 means it should be a sum over sub-items
+hours_required = 20
+is_done = false
+
+
+
+
+[[project_plan.action_items]]
+name = "writing documentation"
+description = """
+all functions need to be documented. some need to be better documented.
+there has to be a uniform documentation standard,
+preferably something from which web or other documentation can be generated.
+(doxygen equivalent in python).
+
+furthermore, the examples need to be documented. this includes explainers 
+for the math and the robotics of it all.
+now, if there is a good tutorial/book/video/whatever out there that explains
+something well, then of course link to that and don't invent hot water.
+however, then you still need to find and reference those things,
+and also write a short introduction and connective tissue around.
+but a lot of things do need to be explain in text and video format.
+
+re-doing videos with scripts is a project by itself,
+this todo concerns the documenting of the codebase (but the two are obviously related).
+"""
+priority = 1
+deadline = 2026-09-01
+dependencies = []
+purpose = """essential for getting other people to use the library, but not as essential
+as killer features if they aren't written yet"""
+# -1 means it should be a sum over sub-items
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items.action_items]]
+name = "documenting functions and classes (in code)"
+description = """
+write the short documentation in the string below function/class declaration
+
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """documentation for active code writing"""
+hours_required = 6
+
+[[project_plan.action_items.action_items]]
+name = "correct packaging"
+description = """
+having some comments in code, something in a README, a massive pdf and a collection of video tutorials on pre-requirements (and some smc tutorials) is simply not the correct way to package all this information. in fact, nothing is "the best". depending on what you need and are looking to find, different formats will suite different purposes. there's no way around that. a book is for people that want to go through everything systematically. a video when you prefer watching somethign over reading it. it also completely beats reading in terms of introductory and expository value (just like books beat anything else for deep learning). for code, i want it in the code, and i want a generated website to clik around the library (jump through definitions) because that also renders the math.
+
+Now, the good thing is that we can switch between a pdf, a website, etc by a) having nice tools for that, and b) being smart about how things should be structured.
+
+The documentation covers:
+- code design principals
+- actual code documentation
+- notes on robot control
+- actual control algorithms and functions
+
+And from this you want text for totally diferent audiences:
+- the shortest possible crash course for non-robotics people doing a project
+- a deep dive for people who want to go beyond the crash course
+- quick reference for experienced practitioners that don't want a lot of fluff, just the novel stuff
+- de facto an educational course on robotics mixing theory and hands-on stuff for people with a weak background that don't know anything about a robot.
+
+There is no avoiding it - there should be one version per target audience. readme, crash course doc, coursebook-type doc, a website that simultaneously does both, and the self-generated API docs in html also.
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """big time documentation"""
+hours_required = 0
+
+[[project_plan.action_items.action_items]]
+name = "documenting examples"
+description = """
+we started writing technical reports. this is perfect documentation for an example. describe the tradeoffs, controller selection and other engineering decisions.
+
+NOTE: when writing the technical report, you must include how, where and which to particular script to run with what arguments to reproduce the result.
+NOTE: you HAVE TO describe the all the arguments/parameters, what they do and what reasonable values are. preferably support this with asserts in the code - one shouldn't be able to accidentaly blow up everything by selecting a bad parameter. it would also be good if different defaults sat in appropriate yaml files
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """documentation for what you can do with the library, but also for my work more generally"""
+hours_required = 0
+
+[[project_plan.action_items.action_items.action_items]]
+name = "documenting drawing example"
+description = """
+write about it man
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """fully finish the drawing demo until the end of time"""
+hours_required = 6
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "old student projects"
+description = """
+if possible try making it runnable and save it for posterity's sake. the documentatio is their reports of course.
+you most certainly don't want all of it, nor do you want to waste time on it, but at least one would be good.
+"""
+priority = 3
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """fully finish the drawing demo until the end of time"""
+hours_required = 6
+
+
+[[project_plan.action_items]]
+name = "more controllers" 
+description = """
+the more control there is, the better. of course it has to have at least
+one more good reason to be done, it's not it's own purpose.
+"""
+priority = 2
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """increase library power, and making existing feature professional-grade"""
+hours_required = 0
+
+
+[[project_plan.action_items.action_items]]
+name = "fixing QP, putting in adding variants with manip maxing and similar"
+description = """
+the QP formulation is the goated inverse kinematics formulation.
+there are multiple QP solvers out there, and all of the tested ones should be 
+made available (in order or performance and preference of course).
+
+for some reason the current version does not work every time and that
+makes absolutely no sense to me. that has to be investigated.
+
+SOLUTION: i'm pretty sure i used a wrong version of the QP formulation at a time, where V = Jv was a constraints. and this is exactly contradicting the v_min < v < v_max constraint. so the problem is infeasible by construction if V is too big. instead, make the task a costs: min v | Jv - V|. works perfectly and moves linearly with this.
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = true
+dependencies = []
+purpose = """QP is the best inverse kinematics formulation and should therefore be available"""
+hours_required = 12
+
+[[project_plan.action_items.action_items]]
+name = "fun example controller - purely visual teleop"
+description = """
+this could be a student project also, but it needs a fun story around it plus something else.
+mediapipe's mediahand or whatever it's called is incredibly good at hand detection. good enough to easily (provided you know what you're doing) determine what the pose of the hand would be if you were to reduce it to a frame. this makes means it would be super good to do teleoperation with. at the very least this would make for a more fun freedrive equivalent. the problem of course is that the velocities between the human arm and the robot might be unmatchable. the actual transcription of hand points into a frame is nontrivial also. so there would have to be some logic to save us in unexpected situations. the underlying controller has to be something compliant. anyway this sounds incredibly fun. let's say performance is measured by the difficulty of the task you can perform with the robot hand. one more difficulty would be how to handle (the lack of) tactile feedback.  one more very fun extension of this would be to use the whole body pose detector and then use a mobile robot.
+"""
+priority = 3
+deadline = 2099-01-01
+is_done = false
+dependencies = []
+purpose = """literally just for fun"""
+hours_required = 0
+
+
+[[project_plan.action_items.action_items]]
+name = "premade trajectory generation for point-to-point motion"
+description = """
+default point-to-point motion results in weird-looking trajectories if the velocity
+constraints aren't taken into account (and they are only in the qp formulation).
+if you clip them, they lose their shape, again resulting in weird-looking motion.
+
+but generating a path and throwing any reasonable heuristic for timing on that is 
+real easy. straight line path, circular path, some bezier curve heuristic thing,
+whatever can be made easily. then you throw a PD controller on that trajectory
+and you're done.
+
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """all clik is instantly improved. professional-grade solution too"""
+hours_required = 6
+
+[[project_plan.action_items.action_items]]
+name = "vision stacks"
+description = """
+all students do computer vision effectively from scratch every time. this is a huge waste of time. the skeleton, some basic docs (could be links) and some basic things like detecting aruco codes should be included out of the box. vision should run as a separate process with processmanager where is stores whatever processing output in shared memory (what else could it possibly be)
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """all clik is instantly improved. professional-grade solution too"""
+hours_required = 10
+
+
+[[project_plan.action_items.action_items]]
+name = "visual servoing done by yuyao"
+description = """
+yuyao's project course project did pushing via visual servoing. re-package this as an example. include the report as the technical report of course.
+"""
+priority = 1
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """all clik is instantly improved. professional-grade solution too"""
+hours_required = 6
+
+
+[[project_plan.action_items.action_items]]
+name = "teaching a skill via dmp's"
+description = """
+if this works well for some fun task, refactor albin's dmp's as well.
+bam, nice fun controly control.
+there already is a function to teach a trajectory in freedrive,
+in drawing_on_board there is an example of a taught trajectory
+being passed to a dmp (useful because initial conditions are not the same).
+that's the starting of point for this todo.
+
+
+OLD TEXT, CLEAN THIS UP
+1. easy to use DMPs
+--------------------
+
+1.1. cartesian space dmp. 
+----------------------------
+the current one unnecessarily assumes joint space, 
+but if you rewrite the code it could do either based on an argument.
+as far as the dmp is concerned only the dimensions are different,
+and you can just ik the cartesian reference into joint space
+
+1.2. using multiple trajectories for a fit
+---------------------------------------------
+the fitting is already there, it just assumes a single trajectory (indirectly,
+the math is the same either way).
+adding more should literally just amount to verifying the dimensions
+in the math.
+
+"""
+priority = 4
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """fun and maybe small profit for some tasks and some street cred"""
+hours_required = 20
+
+
+[[project_plan.action_items.action_items]]
+name = "torque-level controllers"
+description = """
+needed for paper which is solved on the torque level. 
+also it library should support torque-level controlled robots as well,
+ex. kuka iiwa.
+"""
+priority = 3
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """torque level controlled needed in papers and also to sell the library and me better"""
+hours_required = 30
+
+
+
+[[project_plan.action_items.action_items]]
+name = "behavior trees"
+description = """
+for the robot to do more complicated tasks, a behavior tree needs to be formed
+to select different actions depending on the criteria. 
+automatons correspond to intelligence of an insect, and that's what gets 
+the job done and is understandeable.
+
+the way this works now is you assosiate a number with each control loop you want
+running (there can only be one at one time), have sensors or whatever else
+obtain the state and also associate it with a number - that's the control loop
+you want to run at this time.
+this is even more primitive because you could have different transitions.
+of course you still have an automaton, but one that's easier to model
+for a human.
+
+this is a job for behaviour trees - the robotics way of saying the robot is 
+an automaton which does a thing per state, with defined transitions between states.
+there's libraries with GUI tools for setting these trees and other goodies.
+ideally you should just integrate with some of these - writing
+a ton of ifs is untennable if you have more than 4-5 states.
+
+in any event, whatever amount logic is implemented here should be 
+a separate part of smc. it should be abstract enough so that it's 
+easy to generate new behaviour trees from existing primitives (controlLoops).
+once you have a behavior tree, you stick it into a control loop which
+executes the control loop associated with the current state and that's it.
+the point is this should be cleanly done, not all shoved into one example file.
+"""
+priority = 2
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """behavior tree support that isn't a complete hack unusable in the future.
+it does not need to be great, or even good, but it has to be clean"""
+hours_required = 12
+
+
+[[project_plan.action_items]]
+name = "ready-made function for basic trajectory quality metric calculation"
+description = """
+writing a collection of quality-metric-computing functions 
+makes it possible to evaluate how good a controller is
+with something other than eyeballs alone (although that it still the king imo)
+
+some metrics to implement are:
+- smallest manipulability over the trajectory - the higher the better
+- time taken to execute task
+- rms error for path-following controllers
+"""
+priority = 3
+deadline = 2025-09-01
+is_done = false
+dependencies = []
+purpose = """scienfitic analysis of controllers is a good thing to have in the tool box"""
+hours_required = 18
+
+
+#goal 4: more controllers
+#------------------------
+#1. object regrasping with crocoddyl
+#	--> to be done in separate repo, planar_in_hand_manipulation,
+#        but it should depend on everything here as much as possible
+#2. finish adding all ik algorithms
+#	--> try integrating pink for QP inverse kinematics instead
+#        of fixing your own code. it's literally the same API from QPsolvers, 
+#        it's just that this is better documented
+#3. casadi or crocoddyl optimal control with obstacle avoidance (manipulator itself + table/floor is enough)
+#	--> outsource as much as possible to student project a, but ofc help w/ infrastructure
+#        if necessary
+#4. [hard] adjusting the dmp to get back on the path despite external forces 
+#   (fix the problem of writing on a non-flat surface/whatever) --> publishable side-project
+#	--> give it 2-3 days before robotweek
+#
+#goal 5: more convenience - set gripper payload etc automatically
+#------------------------
+#1. test whether meshcat.display(q) is a blocking or a non-blocking call.
+#   if it's a non-blocking call then you don't need to run a separate process to command the visualization
+#    # TODO and NOTE the weight, TCP and inertial matrix needs to be set on the robot
+#    # you already found an API in rtde_control for this, just put it in initialization 
+#    # under using/not-using gripper parameters
+#    # problem: bindings weren't exported to python xd
+#    # ALSO NOTE: to use this you need to change the version inclusions in
+#    # ur_rtde due to a bug there in the current ur_rtde + robot firmware version 
+#    # (the bug is it works with the firmware verion, but ur_rtde thinks it doesn't)
+#2. debug comparison log
+#
+#goal 6: panda/yumi
+#----------------
+#finally, do what you promised and put this on another robot,
+#thereby rendering this something publishable in joss
+#
+#1. transfer the library to panda or yumi or both
+#	--> better idea to transfer to dual kuka iiwa setup.
+#        look how mim people are doing it, but also refer
+#        to drake since they also run on iiwa
+#		--> this is easier because it's not broken (panda),
+#            there's no abb egm bullshit, and noone works on that robot
+#
+#====================================================================================================
+#CODEBASE REFACTORING
+#====================================================================================================
+#NEW guiding principles
+#----------------------
+#1. non-software people will never actually interact with the intricacies of the library,
+#   and hence it is pointless to tailor the library internals for them. instead make it as easy as possible
+#   for further development by experts. an expert is someone who knows all aspects of software:
+#   object oriented paradigm, templating, decorators, interfaces, multiple abstraction levels,
+#   multithreading, IPC, networking, Linux system calls, datastructures and algorithms. 
+#   no holds barred, just the best code you're capable of writing. you or someone else will probably refactor 
+#   it again in a few years anyway, if nothing else than for maintenance purposes.
+#   of course, you still want it as simple as possible, but now it's ok 
+#   to use more advanced techniques to get there.
+#   for non-experts YOU THE DEVELOPER expose higher-level building blocks and provide
+#   a metric ton of examples and documentation. this is not the same documentation as that for the developers,
+#   which you also have, but more a user manual.
+#2. tests, tests, tests. fixed CI/CD.
+#3. aggressive responsibility separation, leading to dependency (and their functionality) compartmentalisation.

@@ -1,0 +1,12 @@
+1. turn the robot on - half of knob, 5 sec, then other half
+2. push white button after 10sec
+3. joystick l1 r1 + back and start
+4. press button on torso to move arms to calib_home
+5. make sure you are in manual mode
+5. start arms while holding the left one (wrist sags)
+6. joint jog to align red lines
+7. run calibration on both arm separately
+4. export ROS_MASTER_URI=
+5. export ROS_IP=
+6. bringup
+7. egm start

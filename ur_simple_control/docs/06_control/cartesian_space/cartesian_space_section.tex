@@ -1,0 +1,506 @@
+\section{Cartesian control}
+In Cartesian control, the task is to control a frame
+associated with the robot to either reach or track a desired frame.
+For manipulators, the frame of interest is the end-effector frame 
+$\left\{e\right\}$,
+as it has the tool (usually a gripper) which the robot uses
+to interact with the environment. If we want the robot to pick
+up an object, the target frame $\left\{goal\right\}$ 
+is usually defined in the center
+of the object, with an appropriate orientation for grasping.
+For mobile bases, the frame is usually defined in the center of
+the mobile base. 
+
+The problem of determining the pose $T_w^e$ 
+(end-effector frame location
+as seen in the world frame) of the end-effector
+from the angle of joint positions $q$ is referred
+to as \textbf{forward kinematics},
+$T_w^e = f(q)$.
+However, we usually care about the inverse: knowing which 
+joint angles $q$ correspond to an end-effector pose $T_w^e$.
+This problem is referred to as \textbf{inverse kinematics}.
+The issue is that the inverse of the forward kinematics map $f^{-1}$
+is ill-defined unless the robot has 6 degrees of freedom. 
+More specifically, frames, poses and transformations all life
+in a 6-dimensional space $\mathbb{SE}(3)$.
+Without getting lost in the math, $\mathbb{SE}(3)$ is not a vector space,
+$\mathbb{SE}(3) \neq \mathbb{R}^6$, but it's still 6-dimensional.
+For example a sphere can be described with 2 coordinates (lattitude and 
+longitude), so it's 2-dimensional, despite being embedded in 3D-space.
+Point being, if we have a robot with more than 6 degrees of freedom,
+and the task is defined in 6 dimensions, we have an underdetermined
+problem (the set of equations is smaller than the number of unknowns).
+
+Since we can't use $f^{-1}$ directly, we need a different strategy,
+which is referred to as \textbf{differential inverse kinematics}.
+
+\paragraph{Differential inverse kinematics}
+Instead of working with the forward kinematic map,
+and its inverse, we work its derivative. This allows 
+us to solve the differential inverse kinematics problem,
+which is to find the joint velocities $\dot{q}$ such that
+the end-effector has velocity $\mathcal{V}$.
+We can then re-solve this problem at every time instant,
+and use the computed joint velocities $\dot{q}$ to guide the 
+end-effector to the goal.
+
+In math it goes as follows. First we take the derivative
+of the forward kinematics function:
+\begin{gather}
+		T_{ w }^{ e } = f (q) \quad \Big/ \frac{d }{d t} \\
+\mathcal{V} = J (q) \dot{q}
+\end{gather}
+The Jacobian (differential) of the forward kinematics map
+$ J = \frac{d f}{dq}   $
+is a crucial object which will come up in many contexts.
+But for the task at hand, it is critical to notice
+its dimensions:
+$ J \in \mathbb{R}^{6 \times nq}  $ where $ nq  $ is the number of joints.
+Whereas $ \mathcal{V} \in \mathbb{R}^{6}  $.
+Thus, in general, the Jacobian $ J  $ is not a square matrix,
+and thus has no defined inverse.
+How this is dealt with is what defines different
+differential inverse kinematics solvers. The provided
+options are explored in \ref{sub-ik-solvers}.
+But the simplest one is use a generalization of matrix
+inverses to non-square matrices called the pseudoinverse (Moore-Penrose
+inverse)
+$ J^{ \dagger } = J^{ T } (JJ^{ T })^{ -1 }  $.
+This leads us to the simplest differential inverse kinematics solution
+\begin{equation}
+		\dot{q} = J^{ \dagger } \mathcal{V}
+\end{equation}
+Equipped with this, we can first compute the velocity
+the end-effector needs to get to a desired location,
+solve for joint velocities and command them.
+Doing so until the robot converges to the target location
+yields a controller solving inverse kinematics,
+which is explored next.
+
+\subsection{Cartesian space velocity control}
+\subsubsection{Point-to-point motion}
+In point-to-point motion, we compute difference (error) between
+the current end-effector position $ T_{ w }^{ e }  $ 
+and the target position $ T_{ w }^{ goal }  $. We then set a velocity
+parallel to this direction as the desired end-effector velocity,
+and solve the differential inverse kinematics problem.
+The error vector is given by
+\begin{equation}
+e = \log_{ 6 } \left( \left(   T_{ w }^{ e }\right)^{ -1 } \cdot T_{ w }^{ \text{goal} }  \right) 
+\end{equation}
+which means $ e  $ is a twist (6D velocity), i.e. $ e \in se (3)  $.
+If you want to understand what this expression means, you have
+to become familiar with Lie groups. The crash course version
+covering everything you need 
+is given in \ref{sec-robotics-lie-algebra}.
+
+Having the desired twist, we call an \fbox{\texttt{ik\_solver}},
+which is specified with an argument of the same name.
+The available inverse kinematics solvers are covered in 
+\ref{sub-ik-solvers}.
+The algorithm goes as follows
+
+\begin{algorithm}[H]
+\caption{moveL}
+\begin{algorithmic}[1]
+		\Procedure{moveL}{cfg, robot, $ T_{ w }^{ goal }  $}
+		\While{$\left\lVert   \mathcal{V}_{ cmd }\right \rVert >$ goal\_error }
+		\State $   E \gets \left( \left(T_{ w }^{ e }\right)^{ -1 } \cdot T_{ w }^{ \text{goal} }  \right) $
+		\State $\mathcal{V}_{ cmd } \gets \log (E)$
+		\State $v_{ cmd } \gets $ ik\_solver (cfg, robot, $ \mathcal{V}_{ cmd }  $)
+		\EndWhile
+		\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{A deeper look into inverse kinematics}
+\subsubsection{A key insight from linear algebra}
+The Jacobian $J$, as any matrix, can be interpreted as a linear operator.
+Since $J \in \mathbb{R}^{6 \times nq}$, it is a linear map 
+$J: \mathbb{R}^{nq} \mapsto se(3) = \mathbb{R}^{6}$.
+From linear algebra, we know that a map can ``cover'' only as many dimensions
+as it has inputs. More formally, the dimension of its image can not be higher 
+than the dimension of its domain.
+What happens to the other input dimensions? Since they do not affect the image space,
+they are all mapped to 0.
+Critically, we can split the linear map into the operation which projects onto the image,
+and the map which projects into 0. This has direct consequences to inverse kinematics
+as the map which projects into 0 defines the set of joint velocities for which the end-effector does not move.
+This is then leveraged for better control of the robot.
+In order to see how this is done, and what this map splitting even means, we need to introduce
+some notation and state a theorem.
+
+Let:
+\begin{itemize}
+\item $L$ be some linear map from vector space $v$ to vector space $W$, $L: V \mapsto W$
+\item $Im(L)$ be the image of $L$, i.e. the subspace of $W$ to which $L$ maps to, $Im(L) \subset W$
+\item $\mathcal{N} (L)$ be the nullspace (also called kernel) of $L$, i.e. the subspace of $ L \subset V$ which $L$ maps to 0 $\mathcal{N}(L): V \mapsto 0 $
+\item $dim()$ denote the dimension of a vector space
+\end{itemize}
+
+The rank nullity theorem states:
+\begin{equation}
+dim(Im(L)) + dim(\mathcal{N}(L)) = dim(V)
+\end{equation}
+
+\paragraph{What does this mean in the context of inverse kinematics?}
+For a robot with $nq > 6$, the will be exactly $nq - 6$ additional degrees of freedom.
+These additional degrees of freedom are referred to as \textbf{redundant},
+and collectively \textbf{redundancy}.
+For some robot pose $q$, the nullspace of its Jacobian $\mathcal{N}(J)$ defines the set of 
+of joint velocities for which the end-effector does not move.
+This can be used to put a robot in a more task-compatible pose (exert more force in a direction,
+avoid an obstacle etc). Defining additional tasks which are meant to be achieved
+in the Jacobian nullspace is called \textbf{redundancy resolution}.
+Sometimes this can be just simple joint-limit avoidance, or trying to maintain
+some desired posture $q_{ref}$.
+The more redundancy a robot has, the more important it is to have appropriate redundancy resolution.
+
+Pseudoinverse-based inverse kinematics algorithms directly construct secondary tasks for redundancy resolution
+in the nullspace, which is covered in the paragraph on the pseudoinverse IK solver (TODO: write that down).
+In other methods, for example in the QP formulation, this is done indirectly.
+
+
+\subsubsection{IK as an optimization problem}
+The inverse kinematics problem can be posed as an optimization problem.
+In fact, there is a strong case to be made that turning an underdefined
+set of equations $\mathcal{V} = J \dot{q}$ into an optimization problem is the only sensible thing to do.
+The reason why is that a secondary task can be specified, leading to a full determined problem.
+In fact, the pseudoinverse solution comes from using linear least-squares
+to solve $min_{\dot{q}} \left\lVert \mathcal{V}\right \rVert$.
+
+Here it is critical to observe that $min_{\dot{q}} \left\lVert \mathcal{V}\right \rVert$ is a quadratic cost function.
+This means that inverse kinematics can be formulated as a \textbf{quadratic program} (QP).
+Here's why this is so powerful: 
+\begin{itemize}
+\item QPs are convex, meaning we always find the true optimum, and can be solved incredibly quickly with dedicated solvers
+\item QPs can handle linear equality and inequality constrains
+\item a sum of quadratic costs is still a quadratic cost
+\end{itemize}
+At first glance you might not be impressed with linear constraints. But remember that we are doing differential
+inverse kinematics, which is already a linearization of the inverse kinematics problem,
+and that we solve it at every timestep. This means that we can get a lot of mileage out
+of linear approximations of non-linear constraints.
+Secondly, norms squared are quadratic. Thus we can define a QP for arbitrary obstacle avoidance.
+While the Jacobian and the end-effector velocity define the main tasks, that does not mean
+that other tasks need anything to do with either --- anything depending on $\dot{q}$ is fair game.
+Finally, there is a crucial trick to have in mind, which is that
+$\dot{q} \Delta t$ gives us a difference is position,
+and $\dot{q}/\Delta  t$ gives us acceleration. 
+You can simply add the current joint values to the difference is position,
+and this then opens up the possibility to define costs and constraints in terms
+of joint positions (ex. a constraint on joint limits).
+This is legitimate as we can ensure that the solution is a feasible velocity command.
+
+Here it is important to note that the different objectives (costs) need not be a primary and 
+a secondary tasks --- you can have competing primary tasks.
+This is because one can transcribe a constraint into a cost function via
+\textbf{barrier functions}. This is extremely powerful as it allows
+for constraints other than linear ones to be brought into the problem.
+More on this in TODO: citation (caron's tutorials and pink code).
+The important takeaway is that IK as QP is extremely flexible and powerful.
+Essential, they are trajectory optimization with an infinitesimally small time horizon.
+And while having a time horizon is often beneficial, many seemingly complex
+control tasks can be solved perfectly well with just a single QP.
+
+
+
+\subsection{Inverse kinematics solvers}
+\label{sub-ik-solvers}
+The code for all inverse kinematics solvers
+is in 
+\newline
+\fbox{\texttt{python/smc/control/cartesian\_space/ik\_solvers.py}}.
+
+\subsubsection{Jacobian-based}
+There are of course the classics:
+\begin{itemize}
+	\item Jacobian pseudoinverse: 
+			$ v = J^{ \dagger } V_{ e }= J^{ T }(JJ^{ T }
+			+ \lambda I)^{ -1 } 
+			V_{ e }$ TODO citation
+	\item Jacobian transpose: $ v = J^{ T } V_{ e }  $ TODO citation
+\end{itemize}
+
+For larger movement, these methods can result in wonky 
+trajectories as the error twist $ V_{ e }  $ is large,
+resulting in large joint velocity commands $ v  $.
+Those in turn get saturated, leading to the end-effector
+not going in a straight line, but something else.
+This could be solved by scaling the error twist
+$ V_{ e }  $ to a smaller number, but this is 
+not an ideal solution because the maximum end-effector 
+twist in a particular direction depends on the configuration
+(which could be taken into account manually, but there are 
+better methods out there).
+
+
+%\paragraph{QP formulation}
+%The generic QP formulation is
+%\begin{align}
+%		\min_{x} & \frac{1}{2} x^{ T } P x + r^{ T } x \\
+%		\text{s.t. } & G x \leq h
+%					 & A x = b\\
+%					 & x_{ \min } \leq x \leq x_{ \max }
+%\end{align}
+%
+%The current one is wrong because I didn't know any better in my youth
+%\begin{align}
+%		\min_{v} & v^{ T } I v + r^{ T }x \\
+%		\text{s.t. } & J v = V
+%		& v_{ \min } \leq v \leq v_{ \max }
+%\end{align}
+%where $ r  $ could by the derivative of the manipulatibility index
+%$ \frac{\partial m}{\partial q}  $, or $ q_{ \text{comfy\_home} } - q  $.
+%
+%The reason why this doesn't work is because $ V  $ is big enough,
+%the solution $ v  $ becomes infeasible due to the constraint on it.
+%If you remove the constraint, you can get shitty results due to
+%the saturation on $ V  $. If you introduce a scaling $ KV  $
+%with $ K   $ you get a shitty hot-fix.
+
+\subsubsection{QP formulation}
+\label{qp-formulation}
+\begin{align}
+		\min_{v} &\frac{1}{2} \left\lVert J \Delta q - \mathcal{V} \right \rVert  \\
+		\text{s.t. } & v_{ \min } \leq v \leq v_{ \max }
+\end{align}
+The joint displacement $ \Delta q  $ can be regarded as joint velocity $ v  $
+if the integration step is small enough (it is, i.e. we make sure 
+that we have high enough control frequency),
+$v = \Delta q/\Delta t$.
+From now on we write $ v  $.
+If there were no additional objectives, and no any constraints whatsoever,
+the linear least-squares solution to this problem would be the Jacobian pseudoinverse method.
+What makes the QP formulation superior is the fact that it does handle constraints.
+
+This can be transcribed as a generic quadratic program (QP), which looks like
+\begin{align}
+		\min_{x} & \frac{1}{2} x^{ T } P x + q^{ T }x \\
+		\text{s.t. } & Gx \leq h\\
+					 & Ax = b
+\end{align}
+
+In particular, the transcription goes as follows:
+\begin{align}
+		\left\lVert J v - K V \right \rVert ^{ 2 } &=
+		\left( J v - K V \right) ^{ T } \left( J v - K V \right) \\
+&=
+		v^{ T }J^{ T }Jv - KV^{ T }Jv - KvJ^{ T }V + 
+		\underbrace{  K^{ 2 }V^{ T }V}_{\text{does not depend on }v} \\
+		 &\implies v^{ T } \underbrace{  (J^{ T }J)}_{P}v 
+	 \underbrace{  - 2 KV^{ T }J}_{q} v
+\end{align}
+\textbf{Note} that the same Tikhonov regularization (also known as Levenberg-Marquardt damping
+in this context) 
+should added to the $ P  $ as it was in the pseudoinverse, i.e.
+$ P = J^{ T }J + \lambda I $.
+Crucially, we can add additional tasks and constraints to the QP formulation,
+as long as the costs are quadratic, and the constraints are linear.
+Since we are solving this problem at each control time step, 
+this is actually quite powerful as we can use linearised nonlinear costs/constraints
+and they will work fine.
+
+In particular, let a cost be denoted as $ e (q)  $,
+and it's Jacobian by $ J (q)  $.
+This will again result in a cost of form
+$ \left\lVert J_{ i } v - K_{ i }e_{ i } \right \rVert ^{ 2 }  $.
+You then work out the same steps as above for the frame placement cost, getting $ (P_{ i }, r_{ i })  $. 
+Then you can simply put $ P = \sum_{i}^{} P_{ i }, r = \sum_{i}^{} r_{ i }  $,
+which is still quadratic.
+This emulates behaviour of HQP.
+But why do we even want secondary objectives? Tackled in the next subsection.
+
+
+Available QP solvers:
+\begin{itemize}
+		\item solvers supported by \href{https://github.com/quadprog/quadprog}{quadprog} (we use what the default one is,
+				but you can install and select any one supported
+				by quadprog)
+		\item \href{https://github.com/Simple-Robotics/proxsuite}{proxsuite} - cool because it has warmstarting
+				(among other things)
+\end{itemize}
+
+\subsubsection{Secondary tasks and redundancy resolution}
+TODO:
+\begin{itemize}
+		\item what is redundancy
+		\item nullspace exploitation
+		\item why is that necessary for good performance
+		\item can you have multiple primary objectives tho??
+		\item constraints vs objectives
+\end{itemize}
+
+%Finding an appropriate secondary task, and doing that computation is a part of
+%the TODO. Since the biggest issue on YuMi is the elbows hitting the torso,
+%going for $ e = q_{ \text{comfy\_configuration} } - q   $ is probably the way to go.
+%The alternatives are manipulability maximization or self-collision avoidance.
+%Manipulability maximization could also be added as a ternary goal,
+%where the manipulability is defined for the whole of the robot.
+%Looking at \href{ https://github.com/stephane-caron/pink}{pink} 
+%and  \href{https://stephane-caron.github.io/pink/index.html}{it's documentation}
+%is a good place to start.
+%\textbf{Note} that pink isn't integrated into SMC simply because it was annoying
+%to match it's structure to SMC's, but it can be done.
+%A starting point for that approach would be to look into
+%\fbox{\texttt{examples/cartesian\_space/yumi\_self\_collision.py}}.
+
+%\paragraph{Solution approach}
+%We need the QP formulation of inverse kinematics,
+%(or something which allows for additional objectives and constraints), 
+%because the pseudoinverse solver
+%causes the configuration of the robot goes to shit (breaks the robot) during
+%Cartesian path-following (and thus cart-pulling as well).
+%
+%
+%One way to implement the QP formulation is to shove the whole of pink setup into an \fbox{\texttt{ik\_solver}}
+%construction. Then it can be applied to any \fbox{\texttt{controlLoop}} without any additional code. 
+%That requires creating a big struct for all pink's variables,
+%which is then partialed to comply with \fbox{\texttt{ik\_solver}}'s API.
+%The API could also be changed, just note that you then need to refactor this throughout the codebase.
+%
+%The way adding tasks is handled in pink is great, and there is no point
+%in rewriting that. We want this because it would make it super
+%easy to swap different objectives, i.e.
+%we wouldn't need to a new ik solver for every thing to try
+%(or write the logic equivalent to pink to make one of the customizable).
+%
+%Alternatively, we can manually construct the QP, and also partial in
+%whatever additional variables we need. The drawback is that
+%this will be more verbose and annoying, but the upside is that
+%the math of the QP will be completely transparent.
+
+
+
+%\paragraph{Secondary goals}
+%\begin{itemize}
+%		\item posture reference tasks with $ e (q) = q_{ \text{comfy} } - q  $ --> DONE
+%				\newline
+%				ik\_solver is called \fbox{\texttt{QPWithPosture}}.
+%				It does not take mobile pases positions into account of course.
+%		\item velocity limit constraints --> DONE
+%		\item TODO: joint limit constraints 
+%		\item TODO IF ABOVE ISN'T ENOUGH FOR GOOD POSTURE: put in the derivative of manipulability w.r.t. $ q  $.
+%		\item TODO IF SELF-COLLISIONS ARE COMMON: adding collision avoidance via control barrier functions.
+%				Regarding what to avoid, there are 2 options:
+%				\begin{enumerate}
+%						\item make spheres around elbows and end-effectors. Use \fbox{\texttt{BodySphericalBarrier}}
+%								from pink for this. Inputs are frames that can't be avoided and the radius
+%								of the sphere around said frames. Look at 
+%								\newline
+%								\fbox{\texttt{pink/examples/barriers/yumi\_self\_collision.py}} for details.
+%								There's an SMC-ed version of this in examples/cartesian\_control/yumi\_self\_collision.py
+%						\item make ellipses around every link. Use \fbox{\texttt{SelfCollisionBarrier}}
+%								from pink for this. Look at 
+%								\newline
+%								\fbox{\texttt{pink/examples/barriers/kukas\_self\_collision.py}} for details.
+%				\end{enumerate}
+%\end{itemize}
+
+\paragraph{How to run}
+The main file for SingleArmInterface point to point Cartesian control is 
+\fbox{\texttt{example/cartesian\_space/clik\_point\_to\_point.py}},
+and the one for DualArmInterface is 
+\fbox{\texttt{example/cartesian\_space/dual\_arm\_clik.py}}.
+The relevant arguments can be found simple by adding
+\fbox{\texttt{--help}} when running the example,
+but the most important ones is
+\fbox{\texttt{--ik-solver [solver]}} to select a solver.
+
+\subsection{Path following Cartesian velocity control}
+TODO:
+first we need to discuss what we mean by plan here
+
+\subsubsection{[TODO]: path interpolation}
+TODO: reword, put in a lil on B-splines
+
+
+%This is the key thing to do to make sure Cartesian path following works.
+%The first thing to do is determine the number of points to be interpolated between.
+%There is no benefit in interpolating the whole path as
+%we're not following the whole path.
+%We want a simple curve to make the computation quick, as it needs to happen
+%in real-time in conjunction with the real-time path planner
+%(anything reasonable should be fine).
+%\textbf{Note} that linear interpolation (without splines) isn't good enough
+%as it results in jagged motion on the ``edges''.
+%
+%
+%One option is to form a Bezier curve, or a polynomial interpolation on the first few points
+%and call it a day. A smarter version would be 
+%to do the same, but with least-squares fit on a larger number of points,
+%the amount of which is determined by some heuristic like their arclength
+%being at least something.
+
+
+
+\paragraph{Short note on 2D to 6D reference}
+Often we get a 2D path to follow, which is of course underdefined.
+This is most common when drawing a path for the purposes of testing a path-following controller.
+The path is made to be 3D by specifying a height $ h  $ (this is an argument),
+giving the translation $ p = \begin{bmatrix} x_{ i } & y_{ i } & h \end{bmatrix}   $
+Of course, we could impose an arbitrary orientation along the path,
+and interpolate the $ SO (3)  $ rotations to make it smooth. 
+However, this isn't implemented as it (so far) isn't useful for cart-pulling nor navigation.
+
+Instead, a Frenet frame is constructed on the linear path to give it orientation.
+First, we make the x-axis be the tangent of the path. 
+The angle of the x-axis of the frame as seen in the x-y plane of
+the world frame $ \left\{ w \right\}   $ is determined with
+\begin{equation}
+ \theta [i] = atan2 \left(  \frac{\phi_{ y } [i+1] - \phi _{ y } [i]}{\phi_{ x } [i+1] - \phi _{ x } [i]}  \right)  
+\end{equation}
+and we turn this into a rotation matrix with
+$ R_{ \theta_{ i } }  \text{rpyToMatrix} (0,0,\theta_{ i })$
+Next, we specify the rotation about the x-axis (this is an argument),
+and get $ R_{ x } =  \text{rpyToMatrix} (\text{rot\_x},0,0)$.
+In cart-pulling, we want the z axis to be perpendicular to the 
+The y-axis completes the right-handed frame, meaning
+$ R = R_{ \theta } \cdot R_{ x }  $.
+Finally, the resulting $ SE (3)  $ path is then
+\begin{equation}
+P_{ i } = 
+\begin{bmatrix} 
+		R_{ i } & p_{ i } \\
+		0 & 1
+\end{bmatrix} 
+\end{equation}
+
+
+\subsubsection{Trajectory generation}
+TODO
+
+\subsubsection{Velocity tracking controller}
+
+\begin{algorithm}[H]
+\caption{cartesianTrajectoryTracking}
+\begin{algorithmic}[1]
+		\Procedure{cartesianTrajectoryTracking}{cfg, robot, $ T_{ w }^{ ref } (t)  $}
+		\While{$t < T_{ final } $ and $\left\lVert   \mathcal{V}_{ cmd }\right \rVert >$ goal\_error }
+%		\State $   E \gets \left( \left(T_{ w }^{ e }\right)^{ -1 } \cdot T_{ w }^{ \text{goal} }  \right) $
+%		\State $\mathcal{V}_{ cmd } \gets \log (E)$
+%		\State $v_{ cmd } \gets $ ik\_solver (cfg, robot, $ \mathcal{V}_{ cmd }  $)
+		\EndWhile
+		\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+\paragraph{How to run}
+The main file for SingleArmInterface path following Cartesian control is 
+\fbox{\texttt{example/cartesian\_space/clik\_path\_following.py}},
+and the one for DualArmInterface is 
+\fbox{\texttt{example/cartesian\_space/dual\_arm\_clik\_path\_following.py}}.
+The relevant arguments can be found simple by adding
+\fbox{\texttt{--help}} when running the example,
+but the most important ones is
+\fbox{\texttt{--ik-solver [solver]}} to select a solver.
+Additionally, there is a 
+\fbox{\texttt{--planner}} option (on by default).
+This will spawn the real-time path generation 
+in a new process, and create a predefined map.
+
+\subsection{Cartesian space torque control}
+TODO

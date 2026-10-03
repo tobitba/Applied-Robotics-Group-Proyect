@@ -1,0 +1,11 @@
+base:
+  robot : "slumi"
+test_path:
+  path_height : 0.96
+  path_rotx : 3.14
+  map_width : 3.0
+  map_height : 3.0
+cart_pulling:
+  base_to_cart_arclength : 0.9
+  safety_radius : 0.5
+  base_reference : True

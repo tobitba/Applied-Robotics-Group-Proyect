@@ -1,0 +1,150 @@
+\section{Multiprocessing and networking in SMC}
+Any robotics software has to be capable of parallel computation.
+Simply put, you don't want your controller to stall because the processor
+is busy running a visualization, or waiting on a camera update.
+Normally, this would be handled with multithreading,
+but since Python still has the Global Interpreter Lock (GIL),
+all Python threads run on a single processor core.
+
+For this reason, we are forced to implement parallelism via processes.
+Fortunately, since SMC is a library for quick-and-dirty implementation
+for testing and throwing away robotics experiments, we can get away with
+spawning all required processes in the beginning, and rest assured
+that they will run in the 5 minutes our experiments last
+(if you want serious code for serious applications, why are you looking at a Python library?).
+
+Interprocess communication (IPC) in SMC is designed to be as lean and as quick as possible.
+In other words, \textbf{we always aim to minimize the amount of data transferred
+between processes, and to always have the last piece of data available},
+irrespective of the actual protocol used.
+
+There are 3 IPC techniques in SMC: 
+\begin{itemize}
+\item \textbf{queues} - for asynchronous data transfer for processes
+		running at substantially different frequencies,
+		ex. for visualization
+\item \textbf{shared memory} - for instantaneous data access
+		for processes running at comparable frequencies in the same machine
+\item \textbf{sockets} - for processes running at different machines,
+		with serialization from protobuf (allows for heterogeneous software stacks)
+\end{itemize}
+
+From the user point of view, IPC techniques are hidden
+behind basic multi-process interaction paradigms, which
+are implemented in a dedicated \fbox{\texttt{ProcessManager}}.
+The main process (the one spawned when running an example script) is reserved
+for control. Other processes are spawned by passing a function
+to be run in a separate process
+to a particular \fbox{\texttt{ProcessManager}}, which will be introduced next.
+
+\subsection{ProcessManager}
+\fbox{\texttt{ProcessManager}} is a wrapper class around the function
+you want to run in a separate process.
+That function is referred to as \fbox{\texttt{side\_function}}.
+It's sole purpose is to spawn the process and the selected IPC method
+for you. It's \textbf{your job} to declare which data you're exchanging
+to actually send and receive said data, in the same manner as for logging
+and plotting.
+
+The following multi-process interaction paradigms are supported in SMC:
+\begin{itemize}
+\item \fbox{\texttt{ConsumerProcess}} - the side function only takes
+	in data from the control process via queue (ex. visualizer, plotter)
+\item \fbox{\texttt{ProducerProcess}} - the side function only provides 
+	data to the control process via queue (ex. camera outputs)
+\item \fbox{\texttt{ProducerConsumerProcess}} - combines
+	functions of the consumer and producer processes
+\item \fbox{\texttt{CollaborativeProcess}} - like producer-consumer
+	process, but the communication is implemented via shared memory.
+	Allows for nearly-instantaneous communication,
+	ex. required in path planning (provide current position,
+	obtain current path)
+\end{itemize}
+
+The producer processes require an \fbox{\texttt{init\_value}} argument,
+which will be return before the first producer output.
+The consumer processes require an \fbox{\texttt{init\_command}}
+argument to begin computation at process spawn time, instead
+of when the controller starts.
+Additional arguments to the side function are to be provided 
+via \fbox{\texttt{partial}}-ing.
+
+\paragraph{Using ProcessManagers}
+The process with your function will be started 
+immediately upon construction of a ProcessManager object. 
+You then interact with the process with the following functions called
+from the ProcessManager object:
+\begin{itemize}
+\item \fbox{\texttt{sendCommand(command)}} - sends the command/message
+		to a consumer process 
+\item \fbox{\texttt{getData()}} - obtain the latest information
+	from the producer process - \textbf{always}
+		returns the latest received data
+\end{itemize}
+Depending on the underlying IPC used, the side functions will need
+to receive different IPC objects, which then determine
+how \fbox{\texttt{sendCommand }} and \fbox{\texttt{getData}} work.
+The simplest way to navigate this is to look at existing examples
+and replicating the procedure therein.
+
+\subsection{Multiprocessing examples}
+\paragraph{Producer-consumer examples}
+Producer-consumer is multiprocessing lingo for a communication
+relationship where one process ``produces'' information (ex. messages, tasks,
+commands) and the other process ``consumes'' that information.
+In other words, the communication goes one way only.
+Another popular name for this communication relationship is publisher-subscriber.
+
+A hands-on example can be found in
+\fbox{\texttt{examples/vision/camera\_no\_lag.py}}
+In this case control is the consumer, and the side process is the producer.
+The side process obtains images from a camera, processes them,
+and puts the result in a queue. The results are then made available
+in the control loop. This example serves only to provide
+the structure of this would work, but there is no actual task.
+An example of how this setup is used 
+for visual servoing can be found in
+\fbox{\texttt{examples/planar\_pushing\_via\_visual\_servoing}.}
+
+This communication relationship can also be found throughout the codebase.
+The control loop is a producer for both the plotter
+and the visualizer. Both use queues. 
+In path following control from a planner, the path planner consumes
+the current position of the robot, and produces the path to be followed.
+Since this needs to be as close to instantaneous as possible,
+shared memory is used for both pieces of information.
+
+
+\subsection{Networking}
+Working with networking requires a basic operational knowledge of computer
+networks (what an IP address is etc). This is unavoidable
+because it is very likely you'll have to set up and debug the network yourself.
+You are referred to 
+\href{https://www.youtube.com/watch?v=0Hhaf4q3eqI}{an introductory video} 
+if you have no experience with networking.
+
+More info on networking in SMC can be found in 
+\newline
+\fbox{\texttt{smc/multiprocessing/networking/notes.md}}.
+Examples of networking in SMC can be found in 
+\newline
+\fbox{\texttt{examples/networked\_clik\_client}}
+One example covers connecting 2 SMC clients, and the other connecting 
+an SMC client with a ROS1 client.
+
+
+
+
+\section{Multiprocessing in ROS2}
+If you are a ROS2 user, just use ROS2 for multiprocessing.
+The bare-bones SMC implementation serves primarily to avoid 
+ROS2 as a dependency (as this would be the only thing in it that's used).
+RCL automatically assigns different IPC protocols to
+its publisher-subscriber structures, and you do not have to think
+about what is ``under the hood.''
+If you have to use ROS2 for interfacing with your robot,
+you will have to learn how it works to access all features of your robot.
+In this case you are referred to \href{https://docs.ros.org/en/rolling/index.html}{ROS2 documentation},
+and are advised to use only control from SMC.
+This requires a specific pre-set argument list, and a particular node structure
+to work. More on this in Appendix \ref{sec-ros2}.

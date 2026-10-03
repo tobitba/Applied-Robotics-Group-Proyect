@@ -1,0 +1,270 @@
+\documentclass{article}
+\usepackage{amsmath}
+\newcommand{\argmin}{\arg\!\min} 
+\newcommand{\argmax}{\arg\!\max} 
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage[T1]{fontenc}
+\usepackage{bm}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+
+\usepackage[   
+	backend=biber,
+	style=alphabetic,
+	sorting=ynt 
+]{biblatex}
+\addbibresource{references.bib}
+
+\title{Geometric redundancy resolution in inverse kinematics}
+\date{\today}
+\author{Marko Guberina}
+
+\begin{document}
+\maketitle
+
+
+\section{Introduction}
+The concept of manipulability has been around since 1985.
+The idea is very straightforward. Take a ball of joint velocities in joint space,
+and map it, via the Jacobian, to operational space. The output is an ellipsoid.
+This ellipsoid tells you how easy it is to move in a particular direction,
+or, equivalently, how sensitive you are to forces in a particular direction.
+For the most part, it was used only to judge the quality of a particular posture.
+If you have a 6dof robot, there is no need to do anything else,
+as you can simply select the IK solution with the highest score.
+But, if you have a redundant robot, there are whole dofs to explore.
+However, in the vast majority of cases, 
+the focus was on the volume of the ellipsoid,
+or on the length of the shortest axis (as at singularity the shortest axis of the
+ellipsoid is 0 in length) [TODO: have some citations about 
+the pre-geometric use of MEs in redundant robots].
+There were some minor efforts in designing a target manipulability ellipsoid (ME)
+\cite{lee1989dual,lee2016humanoid},
+but nothing came of that as far as I'm aware,
+as computing and setting up task compatibility is extremely time-consuming
+and tedious.
+
+A turning point came with \cite{jaquier2021geometry} when the authors
+finally introduce differential geometry to manipulability ellipsoids.
+We've known about screw theory and the benefits of interpreting
+rigid body transformations as Lie group elements since at least the 90s,
+but noone bothered to extend the geometric approach to manipulability before.
+With this we can actual track prescribed manipulability ellipsoids,
+instead of just computing them.
+
+So far there have been only 2 (and a half) applications of 
+manipulability tracking.
+The first is in learning from demostrations, specifically from a human.
+Humans can do most tasks we care about, but they have a different
+kinematic structure than the target robot.
+While you can track the end-effector position, you can't do anything
+with just joint angles (as they don't map to the robot), 
+and you lose all information about
+posture, which is critical when you need to exert high forces for example.
+But you can find the human's manipulability ellipsoid, 
+and then try to achieve that
+as it is independent from the underlying kinematic structure!
+Well, not exactly, but there is a mapping between the human's ME 
+and the robot's ME \cite{reithmeir2022human}.
+The second one is singularity avoidance, for example \cite{maric2021riemannian}.
+The third one isn't even manipulability tracking, just manipulability
+index (ellipsoid volume) maximization.
+
+
+Ideally, we don't need demonstrations. Instead, we build an algorithm
+which can generate a solution for the given motion problem from first 
+principles, and then execute the solution --- 
+all you had to do was specify the task.
+For example, there are many tasks in which we know which path we want the robot 
+to follow,
+ex. welding, polishing etc.
+
+Moreover, sometimes we just want to move the robot a bit.
+As it turns out redundancy resolution is apsolutely critical 
+when there are left-over dofs to exploit. In fact, 
+the higher the nullspace dimension, the more important 
+it is to do some kind of reduncancy resolution.
+
+Let's look at this case a bit more carefully: there is a good
+prescribed path, and we want to track it.
+To keep things simple for now, let's say there are no 
+external contacts and forces, i.e. the path is in free-space.
+The existing redundancy resolution methods don't
+really offer anything to directly benefit in this task.
+As noted in \cite{lee1989dual} [TODO: or wherever idk now],
+manipulability maximization can actually hurt performance.
+Singularity avoidance helps you avoid singularities,
+but that's it. Conceivably, one should be able to design
+a useful and feasible redundancy resolution method,
+which would then avoid singularities as a byproduct.
+Thus, it is sensible to try to design manipulability ellipsoids
+strictly from the path geometry, and use them for 
+redundancy resolution.
+
+This was done in \cite{yan2021decentralized}.
+
+
+\subsection{Why is redundacy resolution still useful?}
+\paragraph{Isn't this magically solved during optimization?}
+Here one cound say, ah, but we have trajectory optimization,
+so what is the point of crafting these additional structures 
+when you could just throw in all your costs and constraints
+into an optimal control formulation?
+Depending on how the OCP is constructed, that might be the case.
+However:
+\begin{itemize}
+\item in general these OCPs are nonconvex, so you're not actually
+	finding the optimal solution
+\item MPC with manipulability maximization has higher manipulability
+	than MPC without it (TODO: prove by demonstration),
+	so you can (and should) put it as a conditioning cost
+\item you can put this in your traj. opt. and get a better
+	conditioned problem, allowing you to add more costs/constraints
+\item even if traj. opt. did somehow leverage manipulability,
+	it would be good to actually show this - more understanding,
+	more profit
+\end{itemize}
+
+
+
+
+
+The goal of is to leverage the manipulability tracking
+controllers described in \cite{jaquier2018geometry}.
+
+All the relevant mathematics can be found in the paper text, although a reader 
+without experience with differential geometry
+will most likely not be able to parse the finer details.
+Hence this text will only concern itself with methodology.
+
+\section{Manipulability tracking as a QP cost}
+Throughout the text, we restrict ourselves to 3D linear velocities.
+The methodology is identical for the full 6D case including angular velocities,
+but the targets and effect on manipulator posture are more difficult to visualize and assess.
+Hence $ v \in \mathbb{R}^{3}, J \in \mathbb{R}^{3 \times n}  $ and so on.
+To cover both cases, we'll use $ d \in \left\{ 3,6 \right\}   $.
+Assume there is a target manipulability ellipsoid $ \Lambda \in S^{ D }_{ ++ } \subset \mathbb{R}^{3 \times 3} $. 
+The goal is to, for one instant in time, compute the vector of joint
+velocities such that the current manipulability ellipsoid $ M  $.
+This vector can then be used as the main kinematic task,
+or a secondary task.
+In the paper, the secondary task is achieved via direct nullspace projection.
+However, this library (and myself) favour posing kinematic tasks
+as quadratic programs (QPs) solved by appropriate QP solvers
+as this framework makes it easier to combine different tasks,
+and, more importantly, linear constraints.
+Thus the very minor contribution of this work, apart from the implementation leveraging Pinocchio,
+is the formulation of manipulability tracking as a quadratic cost.
+
+\subsection{Derivation of target tangent vector in SPD space}
+Utilizing the following inner product at $ T_{ M } S_{ ++ }^{ D }  $:
+\begin{equation}
+\left<\Sigma_{ 1 }, \Sigma_{ 2 } \right>_{ M }=
+tr \left( 
+M^{ -\frac{1}{2}  } \Sigma_{ 1 }
+M^{ -1  } \Sigma_{ 2 }
+M^{ -\frac{1}{2}  } 
+\right) 
+\end{equation}
+as the Riemmanian norm, we can from the exponential and logarithmic maps
+on the SPD manifold:
+\begin{align}
+\Lambda = \exp_{ M } L &=
+M^{ \frac{1}{2}  } \exp (M^{ -\frac{1}{2}  }L M^{ -\frac{1}{2}  })M^{ \frac{1}{2}  }\\
+L = \log_{ M } \Lambda &=
+M^{ \frac{1}{2}  } \log (M^{ -\frac{1}{2}  }\Lambda M^{ -\frac{1}{2}  })M^{ \frac{1}{2}  }
+\end{align}
+
+Thus, provided the current manipulability ellipsoid $ M  $ and the target 
+manipulability ellipsoid $ \Lambda  $, we get the tangent 
+vector from $ M  $ to $ \Lambda  $
+as $ L = \log_{ M } (\Lambda)  $.
+Now we need to compute the vector of joint velocities $ v  $ such that
+we follow $ L  $.
+
+\subsection{Computing the derivative of the manipulability ellipsoid w.r.t. joint velocities}
+We begin with the obvious computations:
+\begin{gather}
+		M = J J^{ T } \text{ definition of kinematic manipulability ellipsoid}\\
+		\dot{M} = \dot{J} J^{ T } + J \dot{J}^{ T } \text{ applying } \frac{d }{d t}
+\end{gather}
+Here we set $ \dot{M} = L  $ to get the change in the manipulability ellipsoid we want.
+To make this a QP cost, we need a quadratic of $ \dot{q}  $.
+To get that, we need
+$ \dot{M} = \mathcal{J} \times _{ 3 } \dot{q}^{ T }  $.
+From this we can do:
+\begin{gather}
+		\min_{\dot{q}} \left\lVert 
+\dot{M} - \mathcal{J} \times _{ 3 } \dot{q}^{ T }
+		\right \rVert  \\
+		=\min_{\dot{q}} \left\lVert 
+vec(\dot{M}) - \mathcal{J}^{ T } _{ (3 )} \dot{q}
+		\right \rVert  
+\end{gather}
+This is just rearranged linear algebra and it's better not to think about it too much
+--- if the result is the same, it does not matter in which order one multiplies and sums.
+But to make at least notation less confusing, $ vec (\cdot)  $ is matrix vectorization
+(stack matrix rows into a single column vector (I think)),
+and $ _{ (3) }  $ is tensor matricization along the 3rd index (same idea as vectorization,
+the point is to write the tensor product as matrix vector multiplication and that's it).
+The point here is we need to get this $ \mathcal{J}  $.
+It can also be written like this:
+\begin{equation}
+\mathcal{J} = \frac{\partial J}{\partial q} \times _{ 2 } J +
+\frac{\partial J}{\partial q} ^{ T } \times_{ 1 } J
+\end{equation}
+
+We need to look into $ \dot{J}  $ a bit, from the perspective of 
+differentiating the forward kinematics map:
+\begin{gather}
+T = f (q) \text{ forward kinematics }\\
+\mathcal{V} = J \dot{q}\text{ inverse kinematics }\\
+\mathcal{A} = \dot{J} \dot{q} + J \ddot{q}
+\end{gather}
+This means $ \dot{J}  $ has a relation to acceleration, which we can use in computation
+via Pinocchio.
+\begin{gather}
+\frac{d J (q (t))}{dt} =
+\frac{\partial J}{\partial q} \dot{q} \\
+= \left[ 
+\frac{\partial J}{\partial q_{ 0 }} \dot{q} \dots \frac{\partial J}{\partial q_{ n }} \dot{q}
+\right] 
+\end{gather}
+where $ H = \frac{\partial J}{\partial q}  \in \mathbb{R}^{d \times d \times n}$
+is the forward kinematics Hessian.
+We can't conveniently compute this directly.
+However, Pinocchio offers the possibility to conveniently compute $ \dot{J}  $.
+Looking at the last expression,
+we can get $ H  $ by setting $ \dot{q} = e_{ i }  $ for every joint $ i  $.
+
+Finally, we have all the components in a classic quadratic cost. This yields
+the canonical quadratic cost $ x^{ T }Px + q^{ T }x  $ as follows:
+\begin{gather}
+		P = \mathcal{J}^{ T } \mathcal{J} + \lambda  I \\
+		q = -2 * vec(L)^{  T} \mathcal{J}
+\end{gather}
+where we also threw in Tikhonov damping as standard practise 
+($ \mathcal{J}  $ needs to be inverted within the QP solver, same story
+as when you do a pseudoinverse.)
+
+\section{Path-tracking redundancy resolution via path-induced manipulability tracking}
+\subsection{How to know which manipulability ellipsoid to go to?}
+In the paper, manipulability ellipsoids are learned from demonstration.
+This is nifty because the demonstrator can have a different embodiment ---
+the manipulability ellipsoid stays the same.
+
+However, given a fully specified task such as door opening, one should
+conceivably be able to construct an appropriate manipulability ellipsoid.
+While it is obvious that, in the kinematic manipulability case,
+the ellipsoid should be elongated along the direction of motion,
+the quantitative question of how much remains unanswered.
+The same goes for singularity avoiding strategies.
+
+In this text we explore some options.
+
+
+\printbibliography
+
+\end{document}

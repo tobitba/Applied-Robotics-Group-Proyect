@@ -1,0 +1,13 @@
+- refactor (at least rename) cartesian path planning. move bs attempts to examples.
+- refactor trajectory generation so that trajectories generators are classes. i want to call a function 
+  which spits out a timing law, i don't care what it is.
+- refactor interplation so that interpolators are classes. i want to call a function 
+  which spits out a parametrized curve, i don't care what it is.
+
+- refactor ik solvers:
+  - they all get passed the robot, the setup is simply too annoying otherwise
+  - have a single QP solver function, with tasks being selected arbitrarily. 
+    basically steal pink's way of handling things, but more minimal. 
+    having 1 QP function for every option is simply too much redundant code
+
+- rename freedrive to kinesthetic teaching

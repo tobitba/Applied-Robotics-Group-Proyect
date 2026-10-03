@@ -1,0 +1,27 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{genericController}\PYG{p}{(}
+    \PYG{n}{X}\PYG{p}{:} \PYG{n}{Any}\PYG{p}{,}
+    \PYG{n}{args}\PYG{p}{:} \PYG{n}{Namespace}\PYG{p}{,}
+    \PYG{n}{robot}\PYG{p}{:} \PYG{n}{AbstractRobotManager}\PYG{p}{,}
+	\PYG{n}{run}\PYG{o}{=}\PYG{k+kc}{True}
+\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{ControlLoopManager} \PYG{o}{|} \PYG{k+kc}{None}\PYG{p}{:}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    GenericController}
+\PYG{l+s+sd}{	\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{	description}
+\PYG{l+s+sd}{	\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{k}{assert} \PYG{n+nb}{type}\PYG{p}{(}\PYG{n}{X}\PYG{p}{)} \PYG{o}{==} \PYG{n}{what\PYGZus{}it\PYGZus{}should\PYGZus{}be}
+	\PYG{n}{controlLoop} \PYG{o}{=} \PYG{n}{functools}\PYG{o}{.}\PYG{n}{partial}\PYG{p}{(}\PYG{n}{genericControlLoop}\PYG{p}{,} \PYG{n}{X}\PYG{p}{,} \PYG{n}{args}\PYG{p}{,} \PYG{n}{robot}\PYG{p}{)}
+    \PYG{n}{log\PYGZus{}item} \PYG{o}{=} \PYG{p}{\PYGZob{}}
+        \PYG{l+s+s2}{\PYGZdq{}qs\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{nq}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}dqs\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}dqs\PYGZus{}cmd\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}err\PYGZus{}norm\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{((}\PYG{l+m+mi}{1}\PYG{p}{,)),}
+    \PYG{p}{\PYGZcb{}}
+	\PYG{n}{save\PYGZus{}past\PYGZus{}item} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+    \PYG{n}{loop\PYGZus{}manager} \PYG{o}{=} \PYG{n}{ControlLoopManager}\PYG{p}{(}\PYG{n}{robot}\PYG{p}{,} \PYG{n}{controlLoop}\PYG{p}{,} \PYG{n}{args}\PYG{p}{,} \PYG{n}{save\PYGZus{}past\PYGZus{}item}\PYG{p}{,} \PYG{n}{log\PYGZus{}item}\PYG{p}{)}
+    \PYG{k}{if} \PYG{n}{run}\PYG{p}{:}
+         \PYG{n}{loop\PYGZus{}manager}\PYG{o}{.}\PYG{n}{run}\PYG{p}{()}
+    \PYG{k}{else}\PYG{p}{:}
+         \PYG{k}{return} \PYG{n}{loop\PYGZus{}manager}
+\end{Verbatim}

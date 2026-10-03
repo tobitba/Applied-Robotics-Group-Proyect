@@ -1,0 +1,156 @@
+\documentclass{article}
+\usepackage{amsmath}
+\newcommand{\argmin}{\arg\!\min} 
+\newcommand{\argmax}{\arg\!\max} 
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage[T1]{fontenc}
+\usepackage{bm}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+    pdftitle={Overleaf Example},
+    pdfpagemode=FullScreen,
+    }
+
+\title{Cartesian space control in SMC}
+\date{\today}
+\author{Marko Guberina}
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+There is nothing new or special about Cartesian control in SMC.
+This text is completely written in reference to
+\begin{itemize}
+		\item blog posts by  \href{https://scaron.info/category/robotics.html}{Stéphane Caron}, in particular:
+				\begin{itemize}
+						\item \href{https://scaron.info/robotics/differential-inverse-kinematics.html}{differential inverse kinematics} 
+						\item \href{https://scaron.info/robotics/jacobian-of-a-kinematic-task-and-derivatives-on-manifolds.html}{Jacobian of kinematic task}
+				\end{itemize}
+		\item Frank C. Park, Kevin Lynch - Modern Robotics
+		\item Murray, R.M., Li, Z. and Sastry, S.S., 2017. A mathematical introduction to robotic manipulation. CRC press
+\end{itemize}
+
+However, it is useful to have a summary at arms length.
+
+\subsection{Notation used}
+\begin{itemize}
+		\item $ q \in \mathbb{R}^{nq}  $ - vector of joint positions
+		\item $ v \in \mathbb{R}^{nv} $ - vector of joint velocities
+		\item $ a\in \mathbb{R}^{nv}  $ - vector of joint acceleration
+		\item $ T_{ a }^{ b } \in SE (3) $ - transformation from frame $\left\{ a \right\} $
+				to $ \left\{ b \right\}   $, equivalently frame $ \left\{ b \right\}   $
+				as seen in frame $ \left\{ a \right\}   $
+		\item $ V \in se (3) $ - twist, i.e. 6D velocity, 
+				$ V = \begin{bmatrix} v & \omega \end{bmatrix} ^{ T }  $
+\end{itemize}
+
+\section{Differential inverse kinematics}
+Skipping all prerequisites on geometry and robot kinematics,
+let's start with
+\begin{equation}
+J (q) v = V
+\end{equation}
+where $ J \in \mathbb{R}^{6 \times nv}  $ is the Jacobian (linearization)
+of the forward kinematics map, i.e. $ J (q) = \frac{\partial FK}{\partial q}   $
+and $ V  $ is end-effector twist.
+
+Usually $ J  $ is not invertible, and we do not assume it to be invertible in this text.
+Hence the task of inverse kinematics is to solve
+\begin{equation}
+\min_{v} \left\lVert J v - V \right \rVert ^{ 2 }
+\end{equation}
+We can also throw some scaling in with $ K_{ p } V  $, with
+$ K_{ p } \in [0,1]  $.
+If this was all there was to it, we would solve this the pseudoinverse and call it a day, i.e.
+\begin{equation}
+v = J^{ T } (J J^{ T } + \lambda I) V = J^{ \dagger }V
+\end{equation}
+But if we have, for example, linear constraints, we can interpret
+the equation as a quadratic program (QP) solve it 
+with a QP solver.
+
+Moreover, we very often have additional tasks, or want to use the redundant 
+joints of freedom for more graceful movement (exploit the nullspace of $ J  $).
+This is especially important if there's multiple frames we care about,
+for example in a mobile manipulator.
+The additional tasks can be simply summed together:
+\begin{equation}
+\min_{v} \sum_{i}^{} w_{ i } \left\lVert J_{ i } v - K_{ i } V_{ i } \right \rVert 
+\end{equation}
+Solving this will result in a compromise between the two targets,
+the amount of compromizing being determined with the weights $ w_{ i }  $.
+Famously, this emulates the behavior of a hierarchical quadratic program (HQP).
+
+\subsection{Inequality constraints}
+The most important inequality constraint concerns joint limits,
+making the problem look like
+\begin{align}
+		\min_{v}& \sum_{i}^{} w_{ i } 
+		\left\lVert J_{ i } v - K_{ i } V_{ i } \right \rVert \\
+		\text{s.t. } & v_{ \min } \leq v \leq v_{ \max }
+\end{align}
+The same can be done with joint angle limits 
+$ q_{ \min } \leq q \leq q_{ \max }  $.
+
+\subsection{Transcribing into standard QP form}
+
+
+
+\subsection{Common secondary tasks}
+\subsubsection{Collision avoidance via control-barrier functions}
+\subsubsection{Manipulability maximization}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\end{document}

@@ -1,0 +1,29 @@
+\subsection{Heron}
+\paragraph{TODO 1} verify topics via experiment
+
+\subsubsection{Hardware}
+There's MiR mobile platform and a UR5e arm. The MiR platform is differential drive.
+It has some Lidar and ultrasonic distance sensors. By default, the arm and the base
+can not move together, but there is a specific secret hack to circumvent this.
+
+\subsubsection{Software}
+There is a whole ROS2 stack, but some parts require additional work. 
+By default you control the robot over WiFi, which comes from an onboard router.
+The onboard computer supports putting a whole Docker image on it,
+meaning one can easily get the best possible control performance.
+
+Despite the ROS stack, SMC arm control relies on ur\_rtde, just as when there's just the manipulator, 
+but calls to ur\_rtde are now in callbacks instead.
+This choice has been made as ur\_rtde works perfectly fine, and there is
+absolutely no benefit in ROS beyond localization (and the utility of this
+for whole-body control testing is already very debatable).
+
+The base is controllable only via ROS though.
+Base is controlled with \fbox{\texttt{/cmd\_vel}} which runs at 30Hz.
+
+\subsubsection{Localization}
+Look at localization subsection in the navigation section.
+Odometry is at \fbox{\texttt{/odometry}} and runs at 60Hz.
+There's AMCL for localization, but \textbf{carefully consider} whether you really need it.
+If you are simply testing a whole-body controller to open a door for example,
+there is absolutely no need for localization whatsoever --- just use odometry.

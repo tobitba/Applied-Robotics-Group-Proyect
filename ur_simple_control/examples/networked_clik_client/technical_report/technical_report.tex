@@ -1,0 +1,56 @@
+\documentclass{article}
+\usepackage{amsmath}
+\newcommand{\argmin}{\arg\!\min} 
+\newcommand{\argmax}{\arg\!\max} 
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage[T1]{fontenc}
+\usepackage{bm}
+\usepackage{array}
+\usepackage{graphicx}
+\usepackage[utf8]{inputenc}
+
+\title{Decentralized admitance control client}
+\date{date}
+\author{Marko Guberina}
+
+\begin{document}
+\maketitle
+\paragraph{Setting} There are 2 robots which carry a thing together.
+They share the wrenches they read among each other. The control signal 
+(target end-effector position and velocity) and is somehow computed somewhere.
+The computer that computes the signal runs ROS1. Hence it needs to receive
+a ROS1 wrench message, and it sends out some message for the control singal.
+
+One robot, Universal Robots’ UR5e, is a 6-dof collaborative manipulator with a 5kg payload.
+Communication with the robot is achieved with via the Real-Time Data Exchange (RTDE) interface,
+with ur\_rtde for client-side implementation. The highest available communication frequency is 500Hz.
+Wrench sensing is obtained from UR5e’s built-in force-torque sensor via the same interface.
+The Robotiq 2F-85 gripper is connected to the robot’s wrist tool flange, and controlled via RS485 serial communication.
+The client-side communication protocol with the gripper is implemented in Python.
+The CLIK control law is implemented in a custom library written in Python, leveraging Pinocchio’s
+implementation of rigid body algorithms.
+
+Due to versioning incompatibilities between the library and ROS Melodic, the computer controlling
+the robot (running the control library utilizing ur\_rtde) can not run ROS1.
+Hence communication with the ROS stack has to be handled otherwise.
+In particular, we have a thin translation layer
+between ROS messages and protobuf running in a Docker container with negligible overhead.
+This works because protobuf allow the compilation of messages to old standards 
+(even Python's pickling changed in the meantime (although specifying an old pickler should work maybe idk)).
+
+In this directory there is an 
+\begin{itemize}
+	\item SMC-SMC version of the CLIK executor and a command server
+giving end-effector positions and velocities,
+\item and the programs to run in the thin Docker containter - same CLIK exector runs on "this computer",
+	while these files are to be copy pasted (along with compiled messages) to this Docker intermediary
+\end{itemize}
+
+
+
+
+
+
+
+\end{document}

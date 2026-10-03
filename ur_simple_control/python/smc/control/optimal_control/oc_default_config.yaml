@@ -1,0 +1,10 @@
+ocp_dt: 1e_2
+n_knots: 100
+stop_at_final: False
+solver: "boxfddp"
+max_solver_iter: 200
+ee_pose_cost: 1e2
+base_translation_cost: 1e2
+x_reg_cost: 1e-3
+u_reg_cost: 1e-3
+linearly_increasing_task_cost_factor: 1.0

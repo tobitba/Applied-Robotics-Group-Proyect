@@ -1,0 +1,293 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{meshcat}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{getMinimalArgParser}\PYG{p}{,} \PYG{n}{getRobotFromArgs}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.util.define\PYGZus{}random\PYGZus{}goal}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{getRandomlyGeneratedGoal}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.control.cartesian\PYGZus{}space}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{getClikArgs}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.robots.utils}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{defineGoalPointCLI}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.control.cartesian\PYGZus{}space.cartesian\PYGZus{}space\PYGZus{}point\PYGZus{}to\PYGZus{}point}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{moveL}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.robots.interfaces.single\PYGZus{}arm\PYGZus{}interface}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{SingleArmInterface}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.control.control\PYGZus{}loop\PYGZus{}manager}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{ControlLoopManager}
+
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{argparse}
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{numpy}\PYG{+w}{ }\PYG{k}{as}\PYG{+w}{ }\PYG{n+nn}{np}
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{pinocchio}\PYG{+w}{ }\PYG{k}{as}\PYG{+w}{ }\PYG{n+nn}{pin}
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{time}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{collections}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{deque}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{functools}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{partial}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{scipy}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{linalg}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{qpsolvers}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{solve\PYGZus{}qp}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{IPython}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{embed}
+
+\PYG{c+c1}{\PYGZsh{} viz}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.visualization.meshcat\PYGZus{}viewer\PYGZus{}wrapper.visualizer}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{MeshcatVisualizer}
+\PYG{k+kn}{import}\PYG{+w}{ }\PYG{n+nn}{meshcat.geometry}\PYG{+w}{ }\PYG{k}{as}\PYG{+w}{ }\PYG{n+nn}{g}
+
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{get\PYGZus{}args}\PYG{p}{()} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{argparse}\PYG{o}{.}\PYG{n}{Namespace}\PYG{p}{:}
+    \PYG{n}{parser} \PYG{o}{=} \PYG{n}{getMinimalArgParser}\PYG{p}{()}
+    \PYG{n}{parser}\PYG{o}{.}\PYG{n}{description} \PYG{o}{=} \PYG{l+s+s2}{\PYGZdq{}Go toward arbitrary kinematic manipulability ellipsoid\PYGZdq{}}
+    \PYG{n}{parser} \PYG{o}{=} \PYG{n}{getClikArgs}\PYG{p}{(}\PYG{n}{parser}\PYG{p}{)}
+    \PYG{n}{parser}\PYG{o}{.}\PYG{n}{add\PYGZus{}argument}\PYG{p}{(}
+        \PYG{l+s+s2}{\PYGZdq{}\PYGZhy{}\PYGZhy{}randomly\PYGZhy{}generate\PYGZhy{}goal\PYGZdq{}}\PYG{p}{,}
+        \PYG{n}{action}\PYG{o}{=}\PYG{n}{argparse}\PYG{o}{.}\PYG{n}{BooleanOptionalAction}\PYG{p}{,}
+        \PYG{n}{default}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,}
+        \PYG{n}{help}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}if true, the target pose is randomly generated, if false you type it target translation in via text input\PYGZdq{}}\PYG{p}{,}
+    \PYG{p}{)}
+    \PYG{n}{args} \PYG{o}{=} \PYG{n}{parser}\PYG{o}{.}\PYG{n}{parse\PYGZus{}args}\PYG{p}{()}
+    \PYG{k}{return} \PYG{n}{args}
+
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{velocity\PYGZus{}ellipsoid}\PYG{p}{(}\PYG{n}{J}\PYG{p}{,} \PYG{n}{dq\PYGZus{}max}\PYG{p}{):}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    note: taken from pycapacity (i mean it\PYGZsq{}s 2 lines of math, but still)}
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{c+c1}{\PYGZsh{} limits scaling (idk how, didnt\PYGZsq{} check)}
+    \PYG{n}{W} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{diagflat}\PYG{p}{(}\PYG{n}{dq\PYGZus{}max}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} calculate the singular value decomposition}
+    \PYG{n}{U}\PYG{p}{,} \PYG{n}{S}\PYG{p}{,} \PYG{n}{V} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{linalg}\PYG{o}{.}\PYG{n}{svd}\PYG{p}{(}\PYG{n}{J}\PYG{o}{.}\PYG{n}{dot}\PYG{p}{(}\PYG{n}{W}\PYG{p}{))}
+
+    \PYG{c+c1}{\PYGZsh{} create the ellipsoid from the singular values and the unit vector angle}
+    \PYG{c+c1}{\PYGZsh{} raddi, rotation}
+    \PYG{k}{return} \PYG{n}{S}\PYG{p}{,} \PYG{n}{U}
+
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{computeEllipsoidToEllipsoidTangentVector}\PYG{p}{(}
+    \PYG{n}{Sigma}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{,} \PYG{n}{Lambda}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}
+\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{:}
+    \PYG{c+c1}{\PYGZsh{} now compute the tangent vector, rooted at M\PYGZus{}current,}
+    \PYG{c+c1}{\PYGZsh{} which points toward Sigma\PYGZus{}w\PYGZus{}goal.}
+    \PYG{c+c1}{\PYGZsh{} since M \PYGZbs{}in 3 x 3, the dimension of SPD space is}
+    \PYG{c+c1}{\PYGZsh{} D = D * (D + 1) / 2 = 6.}
+    \PYG{c+c1}{\PYGZsh{} important because this is the dimension of the vector i\PYGZsq{}m looking for}
+    \PYG{c+c1}{\PYGZsh{} distance (Sigma, Lambda) = frobenius\PYGZus{}norm(log(Sigma\PYGZca{}\PYGZhy{}1/2 * Lambda * Sigma\PYGZca{}\PYGZhy{}1/2 )),}
+    \PYG{c+c1}{\PYGZsh{} which is}
+    \PYG{c+c1}{\PYGZsh{} distance (Sigma, Lambda) = Log\PYGZus{}Sigma(Lambda)}
+    \PYG{c+c1}{\PYGZsh{}      = Sigma\PYGZca{}1/2 * log(Sigma\PYGZca{}\PYGZhy{}1/2 * Lambda * Sigma\PYGZca{}\PYGZhy{}1/2 ) * Sigma\PYGZca{}1/2}
+    \PYG{c+c1}{\PYGZsh{} we use this quantity to formulate the controller}
+    \PYG{n}{Sigma\PYGZus{}minus\PYGZus{}pow} \PYG{o}{=} \PYG{n}{linalg}\PYG{o}{.}\PYG{n}{fractional\PYGZus{}matrix\PYGZus{}power}\PYG{p}{(}\PYG{n}{Sigma}\PYG{p}{,} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1} \PYG{o}{/} \PYG{l+m+mi}{2}\PYG{p}{)}
+    \PYG{n}{Sigma\PYGZus{}plus\PYGZus{}pow} \PYG{o}{=} \PYG{n}{linalg}\PYG{o}{.}\PYG{n}{fractional\PYGZus{}matrix\PYGZus{}power}\PYG{p}{(}\PYG{n}{Sigma}\PYG{p}{,} \PYG{l+m+mi}{1} \PYG{o}{/} \PYG{l+m+mi}{2}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} from  M to Sigma, just the log operation}
+    \PYG{c+c1}{\PYGZsh{} on SPD manifold, trust the math people it makes sense}
+    \PYG{n}{L} \PYG{o}{=} \PYG{p}{(}
+        \PYG{n}{Sigma\PYGZus{}plus\PYGZus{}pow}
+        \PYG{o}{@} \PYG{n}{linalg}\PYG{o}{.}\PYG{n}{logm}\PYG{p}{(}\PYG{n}{Sigma\PYGZus{}minus\PYGZus{}pow} \PYG{o}{@} \PYG{n}{Lambda} \PYG{o}{@} \PYG{n}{Sigma\PYGZus{}minus\PYGZus{}pow}\PYG{p}{)}
+        \PYG{o}{@} \PYG{n}{Sigma\PYGZus{}minus\PYGZus{}pow}
+    \PYG{p}{)}
+    \PYG{k}{return} \PYG{n}{L}
+
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{computeEllipsoidFollowingCost}\PYG{p}{(}
+    \PYG{n}{robot}\PYG{p}{:} \PYG{n}{SingleArmInterface}\PYG{p}{,}
+    \PYG{n}{d}\PYG{p}{:} \PYG{n+nb}{int}\PYG{p}{,}
+    \PYG{n}{L}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{,}
+    \PYG{n}{cost}\PYG{p}{:} \PYG{n+nb}{float}\PYG{p}{,}
+    \PYG{n}{tikhonov\PYGZus{}damp}\PYG{o}{=}\PYG{l+m+mf}{1e\PYGZhy{}3}\PYG{p}{,}
+\PYG{p}{):}
+    \PYG{n}{J} \PYG{o}{=} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{getJacobian}\PYG{p}{()[:}\PYG{n}{d}\PYG{p}{,} \PYG{p}{:]}
+    \PYG{c+c1}{\PYGZsh{} we need calJ\PYGZus{}3.}
+    \PYG{c+c1}{\PYGZsh{} part\PYGZus{}M/part\PYGZus{}q = dJ/dq * J\PYGZca{}T + J * (dJ/dq)\PYGZca{}T}
+
+    \PYG{c+c1}{\PYGZsh{} issue 1: dJ/dq is a d x d x n tensor,}
+    \PYG{c+c1}{\PYGZsh{} and i want to work with matrices in the end,}
+    \PYG{c+c1}{\PYGZsh{} so i should create the matricized objects directly.}
+    \PYG{c+c1}{\PYGZsh{} this is fine, just needs to be beared in mind.}
+
+    \PYG{c+c1}{\PYGZsh{} issue 2: pinocchio does not give me dJ/dq.}
+    \PYG{c+c1}{\PYGZsh{} instead, it gives me dotJ/dq\PYGZus{}i.}
+    \PYG{c+c1}{\PYGZsh{} this is also fine if for joint i,}
+    \PYG{c+c1}{\PYGZsh{} i select velocity to be [0,...,1,...0] on ith entry}
+
+    \PYG{c+c1}{\PYGZsh{} matricized result}
+    \PYG{n}{calJ\PYGZus{}3} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{((}\PYG{n}{d}\PYG{o}{**}\PYG{l+m+mi}{2}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{))}
+    \PYG{k}{for} \PYG{n}{i} \PYG{o+ow}{in} \PYG{n+nb}{range}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{):}
+        \PYG{c+c1}{\PYGZsh{} partial derivative w.r.t. ith joint has this effect on velocity}
+        \PYG{c+c1}{\PYGZsh{} as joint velocities are mutually independent}
+        \PYG{n}{qdot} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{)}
+        \PYG{n}{qdot}\PYG{p}{[}\PYG{n}{i}\PYG{p}{]} \PYG{o}{=} \PYG{l+m+mf}{1.0}
+
+        \PYG{c+c1}{\PYGZsh{} required every time because it depends on velocity (obviously)}
+        \PYG{n}{pin}\PYG{o}{.}\PYG{n}{computeJointJacobiansTimeVariation}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{data}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{q}\PYG{p}{,} \PYG{n}{qdot}\PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} required as per getFrameJacobianTimeVariation doc}
+        \PYG{n}{pin}\PYG{o}{.}\PYG{n}{updateFramePlacements}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{data}\PYG{p}{)}
+        \PYG{n}{dJ\PYGZus{}dqi} \PYG{o}{=} \PYG{n}{pin}\PYG{o}{.}\PYG{n}{getFrameJacobianTimeVariation}\PYG{p}{(}
+            \PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{data}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{ee\PYGZus{}frame\PYGZus{}id}\PYG{p}{,} \PYG{n}{pin}\PYG{o}{.}\PYG{n}{LOCAL}
+        \PYG{p}{)}
+
+        \PYG{c+c1}{\PYGZsh{} again, cut off the angular velocities}
+        \PYG{n}{dJ\PYGZus{}dqi} \PYG{o}{=} \PYG{n}{dJ\PYGZus{}dqi}\PYG{p}{[:}\PYG{n}{d}\PYG{p}{,} \PYG{p}{:]}
+        \PYG{n}{dM\PYGZus{}dqi} \PYG{o}{=} \PYG{n}{dJ\PYGZus{}dqi} \PYG{o}{@} \PYG{n}{J}\PYG{o}{.}\PYG{n}{T} \PYG{o}{+} \PYG{n}{J} \PYG{o}{@} \PYG{n}{dJ\PYGZus{}dqi}\PYG{o}{.}\PYG{n}{T}
+
+        \PYG{n}{calJ\PYGZus{}3}\PYG{p}{[:,} \PYG{n}{i}\PYG{p}{]} \PYG{o}{=} \PYG{n}{dM\PYGZus{}dqi}\PYG{o}{.}\PYG{n}{reshape}\PYG{p}{(}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{)}
+
+    \PYG{n}{P} \PYG{o}{=} \PYG{p}{(}\PYG{n}{calJ\PYGZus{}3}\PYG{o}{.}\PYG{n}{T} \PYG{o}{@} \PYG{n}{calJ\PYGZus{}3}\PYG{p}{)} \PYG{o}{+} \PYG{p}{(}\PYG{n}{tikhonov\PYGZus{}damp} \PYG{o}{*} \PYG{n}{np}\PYG{o}{.}\PYG{n}{eye}\PYG{p}{(}\PYG{n}{calJ\PYGZus{}3}\PYG{o}{.}\PYG{n}{shape}\PYG{p}{[}\PYG{l+m+mi}{1}\PYG{p}{],} \PYG{n}{dtype}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}double\PYGZdq{}}\PYG{p}{))}
+    \PYG{n}{q} \PYG{o}{=} \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{L}\PYG{o}{.}\PYG{n}{reshape}\PYG{p}{(}\PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1}\PYG{p}{)}\PYG{o}{.}\PYG{n}{T} \PYG{o}{@} \PYG{n}{calJ\PYGZus{}3}
+
+    \PYG{k}{return} \PYG{n}{cost} \PYG{o}{*} \PYG{n}{P}\PYG{p}{,} \PYG{n}{cost} \PYG{o}{*} \PYG{n}{q}
+
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{moveTowardEllipsoidControlLoop}\PYG{p}{(}
+    \PYG{n}{Sigma\PYGZus{}w\PYGZus{}goal}\PYG{p}{:} \PYG{n}{SE3}\PYG{p}{,}
+    \PYG{n}{viz}\PYG{p}{:} \PYG{n}{MeshcatVisualizer}\PYG{p}{,}
+    \PYG{n}{args}\PYG{p}{:} \PYG{n}{argparse}\PYG{o}{.}\PYG{n}{Namespace}\PYG{p}{,}
+    \PYG{n}{robot}\PYG{p}{:} \PYG{n}{SingleArmInterface}\PYG{p}{,}
+    \PYG{n}{t}\PYG{p}{:} \PYG{n+nb}{int}\PYG{p}{,}  \PYG{c+c1}{\PYGZsh{} will be float eventually}
+    \PYG{n}{past\PYGZus{}data}\PYG{p}{:} \PYG{n+nb}{dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{deque}\PYG{p}{[}\PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{]],}
+\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{tuple}\PYG{p}{[}\PYG{n+nb}{bool}\PYG{p}{,} \PYG{n+nb}{dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{],} \PYG{n+nb}{dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{]]:}
+\PYG{+w}{    }\PYG{l+s+sd}{\PYGZdq{}\PYGZdq{}\PYGZdq{}}
+\PYG{l+s+sd}{    EEP2PCtrlLoopTemplate}
+\PYG{l+s+sd}{    \PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}\PYGZhy{}}
+\PYG{l+s+sd}{    generic control loop for point to point motion with for the end\PYGZhy{}effector}
+\PYG{l+s+sd}{    (handling error to final point etc).}
+\PYG{l+s+sd}{    \PYGZdq{}\PYGZdq{}\PYGZdq{}}
+    \PYG{n}{breakFlag} \PYG{o}{=} \PYG{k+kc}{False}
+    \PYG{n}{log\PYGZus{}item} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+    \PYG{n}{save\PYGZus{}past\PYGZus{}item} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+
+    \PYG{c+c1}{\PYGZsh{} i only care about linear velocities}
+    \PYG{c+c1}{\PYGZsh{} TODO: verify whether linear velocities are actually the first 3 numbers}
+    \PYG{c+c1}{\PYGZsh{} (just command to move in a particular axis direciton, all else 0, and it will be obvious)}
+    \PYG{n}{d} \PYG{o}{=} \PYG{l+m+mi}{3}
+    \PYG{n}{J} \PYG{o}{=} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{getJacobian}\PYG{p}{()[:}\PYG{n}{d}\PYG{p}{,} \PYG{p}{:]}
+    \PYG{c+c1}{\PYGZsh{} for math i need the SPD matrix representation of the ellipsoid.}
+    \PYG{c+c1}{\PYGZsh{} not inversed as per calinon in paper}
+    \PYG{n}{M\PYGZus{}current} \PYG{o}{=} \PYG{n}{J} \PYG{o}{@} \PYG{n}{J}\PYG{o}{.}\PYG{n}{T}
+
+    \PYG{c+c1}{\PYGZsh{} now compute the tangent vector, rooted at M\PYGZus{}current,}
+    \PYG{c+c1}{\PYGZsh{} which points toward Sigma\PYGZus{}w\PYGZus{}goal.}
+    \PYG{n}{L} \PYG{o}{=} \PYG{n}{computeEllipsoidToEllipsoidTangentVector}\PYG{p}{(}\PYG{n}{M\PYGZus{}current}\PYG{p}{,} \PYG{n}{Sigma\PYGZus{}w\PYGZus{}goal}\PYG{p}{)}
+    \PYG{n}{P}\PYG{p}{,} \PYG{n}{q} \PYG{o}{=} \PYG{n}{computeEllipsoidFollowingCost}\PYG{p}{(}\PYG{n}{robot}\PYG{p}{,} \PYG{n}{d}\PYG{p}{,} \PYG{n}{L}\PYG{p}{,} \PYG{l+m+mf}{1.0}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} solve IK as QP}
+    \PYG{n}{A} \PYG{o}{=} \PYG{k+kc}{None}
+    \PYG{n}{b} \PYG{o}{=} \PYG{k+kc}{None}
+    \PYG{n}{G} \PYG{o}{=} \PYG{k+kc}{None}
+    \PYG{n}{h} \PYG{o}{=} \PYG{k+kc}{None}
+
+    \PYG{c+c1}{\PYGZsh{} NOTE: if implementing a new QP and you\PYGZsq{}re getting something weird,}
+    \PYG{c+c1}{\PYGZsh{} turning on verbose might be a good idea}
+    \PYG{n}{v\PYGZus{}cmd} \PYG{o}{=} \PYG{n}{solve\PYGZus{}qp}\PYG{p}{(}
+        \PYG{n}{P}\PYG{p}{,}
+        \PYG{n}{q}\PYG{p}{,}
+        \PYG{n}{G}\PYG{p}{,}
+        \PYG{n}{h}\PYG{p}{,}
+        \PYG{n}{A}\PYG{p}{,}
+        \PYG{n}{b}\PYG{p}{,}
+        \PYG{o}{\PYGZhy{}}\PYG{l+m+mi}{1} \PYG{o}{*} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{max\PYGZus{}v}\PYG{p}{,}
+        \PYG{n}{robot}\PYG{o}{.}\PYG{n}{max\PYGZus{}v}\PYG{p}{,}
+        \PYG{n}{solver}\PYG{o}{=}\PYG{n}{args}\PYG{o}{.}\PYG{n}{qp\PYGZus{}solver}\PYG{p}{,}
+        \PYG{n}{verbose}\PYG{o}{=}\PYG{k+kc}{False}\PYG{p}{,}
+    \PYG{p}{)}
+
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{sendVelocityCommand}\PYG{p}{(}\PYG{n}{v\PYGZus{}cmd}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} update viz}
+    \PYG{c+c1}{\PYGZsh{} for that i need the radii + rotation representation of the ellipsoid}
+    \PYG{n}{radii}\PYG{p}{,} \PYG{n}{rotation} \PYG{o}{=} \PYG{n}{velocity\PYGZus{}ellipsoid}\PYG{p}{(}\PYG{n}{J}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{max\PYGZus{}v}\PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} meshcat ellipsoid}
+    \PYG{n}{ellipsoid} \PYG{o}{=} \PYG{n}{g}\PYG{o}{.}\PYG{n}{Ellipsoid}\PYG{p}{(}\PYG{n}{radii}\PYG{o}{=}\PYG{n}{radii} \PYG{o}{/} \PYG{l+m+mi}{5}\PYG{p}{)}
+
+    \PYG{n}{viz}\PYG{o}{.}\PYG{n}{viewer}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}ellipse\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{set\PYGZus{}object}\PYG{p}{(}
+        \PYG{n}{ellipsoid}\PYG{p}{,}
+        \PYG{n}{g}\PYG{o}{.}\PYG{n}{MeshBasicMaterial}\PYG{p}{(}\PYG{n}{color}\PYG{o}{=}\PYG{l+m+mh}{0xFF5500}\PYG{p}{,} \PYG{n}{transparent}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,} \PYG{n}{opacity}\PYG{o}{=}\PYG{l+m+mf}{0.4}\PYG{p}{),}
+    \PYG{p}{)}
+    \PYG{n}{viz}\PYG{o}{.}\PYG{n}{viewer}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}ellipse\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{set\PYGZus{}transform}\PYG{p}{(}
+        \PYG{n}{pin}\PYG{o}{.}\PYG{n}{SE3}\PYG{p}{(}\PYG{n}{rotation}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{T\PYGZus{}w\PYGZus{}e}\PYG{o}{.}\PYG{n}{translation}\PYG{p}{)}\PYG{o}{.}\PYG{n}{homogeneous}
+    \PYG{p}{)}
+    \PYG{n}{viz}\PYG{o}{.}\PYG{n}{display}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{q}\PYG{p}{)}
+
+    \PYG{n}{err\PYGZus{}vector\PYGZus{}norm} \PYG{o}{=} \PYG{n}{np}\PYG{o}{.}\PYG{n}{linalg}\PYG{o}{.}\PYG{n}{norm}\PYG{p}{(}\PYG{n}{L}\PYG{p}{)}
+    \PYG{k}{if} \PYG{n}{np}\PYG{o}{.}\PYG{n}{linalg}\PYG{o}{.}\PYG{n}{norm}\PYG{p}{(}\PYG{n}{v\PYGZus{}cmd}\PYG{p}{)} \PYG{o}{\PYGZlt{}} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{args}\PYG{o}{.}\PYG{n}{goal\PYGZus{}error}\PYG{p}{:}
+        \PYG{n}{breakFlag} \PYG{o}{=} \PYG{k+kc}{True}
+    \PYG{n}{log\PYGZus{}item}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}qs\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{q}
+    \PYG{n}{log\PYGZus{}item}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}vs\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{v}
+    \PYG{n}{log\PYGZus{}item}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}vs\PYGZus{}cmd\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{v\PYGZus{}cmd}
+    \PYG{n}{log\PYGZus{}item}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}err\PYGZus{}norm\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{err\PYGZus{}vector\PYGZus{}norm}\PYG{o}{.}\PYG{n}{reshape}\PYG{p}{((}\PYG{l+m+mi}{1}\PYG{p}{,))}
+    \PYG{k}{return} \PYG{n}{breakFlag}\PYG{p}{,} \PYG{n}{save\PYGZus{}past\PYGZus{}item}\PYG{p}{,} \PYG{n}{log\PYGZus{}item}
+
+
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{moveTowardEllipsoid}\PYG{p}{(}
+    \PYG{n}{args}\PYG{p}{:} \PYG{n}{argparse}\PYG{o}{.}\PYG{n}{Namespace}\PYG{p}{,}
+    \PYG{n}{robot}\PYG{p}{:} \PYG{n}{SingleArmInterface}\PYG{p}{,}
+    \PYG{n}{Sigma\PYGZus{}w\PYGZus{}goal}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{,}
+    \PYG{n}{viz}\PYG{p}{:} \PYG{n}{MeshcatVisualizer}\PYG{p}{,}
+    \PYG{n}{run}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,}
+\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{k+kc}{None} \PYG{o}{|} \PYG{n}{ControlLoopManager}\PYG{p}{:}
+    \PYG{n}{controlLoop} \PYG{o}{=} \PYG{n}{partial}\PYG{p}{(}
+        \PYG{n}{moveTowardEllipsoidControlLoop}\PYG{p}{,} \PYG{n}{Sigma\PYGZus{}w\PYGZus{}goal}\PYG{p}{,} \PYG{n}{viz}\PYG{p}{,} \PYG{n}{args}\PYG{p}{,} \PYG{n}{robot}
+    \PYG{p}{)}
+    \PYG{n}{log\PYGZus{}item} \PYG{o}{=} \PYG{p}{\PYGZob{}}
+        \PYG{l+s+s2}{\PYGZdq{}qs\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{nq}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}vs\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}vs\PYGZus{}cmd\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{),}
+        \PYG{l+s+s2}{\PYGZdq{}err\PYGZus{}norm\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{),}
+    \PYG{p}{\PYGZcb{}}
+    \PYG{n}{save\PYGZus{}past\PYGZus{}dict} \PYG{o}{=} \PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}L\PYGZus{}prev\PYGZdq{}}\PYG{p}{:} \PYG{n}{np}\PYG{o}{.}\PYG{n}{zeros}\PYG{p}{(}\PYG{l+m+mi}{1}\PYG{p}{)\PYGZcb{}}
+    \PYG{n}{loop\PYGZus{}manager} \PYG{o}{=} \PYG{n}{ControlLoopManager}\PYG{p}{(}
+        \PYG{n}{robot}\PYG{p}{,} \PYG{n}{controlLoop}\PYG{p}{,} \PYG{n}{args}\PYG{p}{,} \PYG{n}{save\PYGZus{}past\PYGZus{}dict}\PYG{p}{,} \PYG{n}{log\PYGZus{}item}
+    \PYG{p}{)}
+    \PYG{k}{if} \PYG{n}{run}\PYG{p}{:}
+        \PYG{n}{loop\PYGZus{}manager}\PYG{o}{.}\PYG{n}{run}\PYG{p}{()}
+    \PYG{k}{else}\PYG{p}{:}
+        \PYG{k}{return} \PYG{n}{loop\PYGZus{}manager}
+
+
+\PYG{k}{if} \PYG{n+nv+vm}{\PYGZus{}\PYGZus{}name\PYGZus{}\PYGZus{}} \PYG{o}{==} \PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZus{}main\PYGZus{}\PYGZus{}\PYGZdq{}}\PYG{p}{:}
+    \PYG{n}{args} \PYG{o}{=} \PYG{n}{get\PYGZus{}args}\PYG{p}{()}
+    \PYG{n}{args}\PYG{o}{.}\PYG{n}{visualizer} \PYG{o}{=} \PYG{k+kc}{False}
+    \PYG{n}{robot} \PYG{o}{=} \PYG{n}{getRobotFromArgs}\PYG{p}{(}\PYG{n}{args}\PYG{p}{)}
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}step}\PYG{p}{()}
+    \PYG{k}{if} \PYG{p}{(}\PYG{o+ow}{not} \PYG{n}{args}\PYG{o}{.}\PYG{n}{real}\PYG{p}{)} \PYG{o+ow}{and} \PYG{n}{args}\PYG{o}{.}\PYG{n}{randomly\PYGZus{}generate\PYGZus{}goal}\PYG{p}{:}
+        \PYG{n}{T\PYGZus{}w\PYGZus{}goal} \PYG{o}{=} \PYG{n}{getRandomlyGeneratedGoal}\PYG{p}{(}\PYG{n}{args}\PYG{p}{,} \PYG{n}{robot}\PYG{p}{)}
+        \PYG{k}{if} \PYG{n}{args}\PYG{o}{.}\PYG{n}{visualizer}\PYG{p}{:}
+            \PYG{n}{robot}\PYG{o}{.}\PYG{n}{visualizer\PYGZus{}manager}\PYG{o}{.}\PYG{n}{sendCommand}\PYG{p}{(\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}Mgoal\PYGZdq{}}\PYG{p}{:} \PYG{n}{T\PYGZus{}w\PYGZus{}goal}\PYG{p}{\PYGZcb{})}
+    \PYG{k}{else}\PYG{p}{:}
+        \PYG{k}{if} \PYG{n}{args}\PYG{o}{.}\PYG{n}{real} \PYG{o+ow}{and} \PYG{n}{args}\PYG{o}{.}\PYG{n}{randomly\PYGZus{}generate\PYGZus{}goal}\PYG{p}{:}
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Ain\PYGZsq{}t no way you\PYGZsq{}re going to a random goal on the real robot!\PYGZdq{}}\PYG{p}{)}
+            \PYG{n+nb}{print}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}Look at the current pose, define something appropriate manually\PYGZdq{}}\PYG{p}{)}
+        \PYG{n}{T\PYGZus{}w\PYGZus{}goal} \PYG{o}{=} \PYG{n}{defineGoalPointCLI}\PYG{p}{(}\PYG{n}{robot}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} start meshcat here}
+    \PYG{n}{viz} \PYG{o}{=} \PYG{n}{MeshcatVisualizer}\PYG{p}{(}
+        \PYG{n}{model}\PYG{o}{=}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{p}{,}
+        \PYG{n}{collision\PYGZus{}model}\PYG{o}{=}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{collision\PYGZus{}model}\PYG{p}{,}
+        \PYG{n}{visual\PYGZus{}model}\PYG{o}{=}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{visual\PYGZus{}model}\PYG{p}{,}
+    \PYG{p}{)}
+    \PYG{n}{viz}\PYG{o}{.}\PYG{n}{display}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{q}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} generate random goal ellipsoid}
+    \PYG{n}{q\PYGZus{}old} \PYG{o}{=} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{q}
+    \PYG{n}{q\PYGZus{}rand} \PYG{o}{=} \PYG{l+m+mi}{2} \PYG{o}{*} \PYG{n}{np}\PYG{o}{.}\PYG{n}{pi} \PYG{o}{*} \PYG{n}{np}\PYG{o}{.}\PYG{n}{random}\PYG{o}{.}\PYG{n}{random}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{model}\PYG{o}{.}\PYG{n}{nv}\PYG{p}{)} \PYG{o}{\PYGZhy{}} \PYG{n}{np}\PYG{o}{.}\PYG{n}{pi}
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}q} \PYG{o}{=} \PYG{n}{q\PYGZus{}rand}
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}step}\PYG{p}{()}
+    \PYG{n}{J} \PYG{o}{=} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{getJacobian}\PYG{p}{()[:}\PYG{l+m+mi}{3}\PYG{p}{,} \PYG{p}{:]}
+    \PYG{n}{Sigma\PYGZus{}w\PYGZus{}goal} \PYG{o}{=} \PYG{n}{J} \PYG{o}{@} \PYG{n}{J}\PYG{o}{.}\PYG{n}{T}
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}q} \PYG{o}{=} \PYG{n}{q\PYGZus{}old}
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}step}\PYG{p}{()}
+    \PYG{n}{radii}\PYG{p}{,} \PYG{n}{rotation} \PYG{o}{=} \PYG{n}{velocity\PYGZus{}ellipsoid}\PYG{p}{(}\PYG{n}{J}\PYG{p}{,} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{max\PYGZus{}v}\PYG{p}{)}
+    \PYG{n+nb}{print}\PYG{p}{(}\PYG{n}{radii}\PYG{p}{)}
+
+    \PYG{c+c1}{\PYGZsh{} meshcat ellipsoid}
+    \PYG{n}{ellipsoid} \PYG{o}{=} \PYG{n}{g}\PYG{o}{.}\PYG{n}{Ellipsoid}\PYG{p}{(}\PYG{n}{radii}\PYG{o}{=}\PYG{n}{radii} \PYG{o}{/} \PYG{l+m+mi}{5}\PYG{p}{)}
+
+    \PYG{n}{viz}\PYG{o}{.}\PYG{n}{viewer}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}goal\PYGZus{}ellipse\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{set\PYGZus{}object}\PYG{p}{(}
+        \PYG{n}{ellipsoid}\PYG{p}{,}
+        \PYG{n}{g}\PYG{o}{.}\PYG{n}{MeshBasicMaterial}\PYG{p}{(}\PYG{n}{color}\PYG{o}{=}\PYG{l+m+mh}{0x0055FF}\PYG{p}{,} \PYG{n}{transparent}\PYG{o}{=}\PYG{k+kc}{True}\PYG{p}{,} \PYG{n}{opacity}\PYG{o}{=}\PYG{l+m+mf}{0.4}\PYG{p}{),}
+    \PYG{p}{)}
+    \PYG{c+c1}{\PYGZsh{} NOTE: it doesn\PYGZsq{}t matter where it is, the only important thing is that we see it}
+    \PYG{n}{viz}\PYG{o}{.}\PYG{n}{viewer}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}goal\PYGZus{}ellipse\PYGZdq{}}\PYG{p}{]}\PYG{o}{.}\PYG{n}{set\PYGZus{}transform}\PYG{p}{(}\PYG{n}{pin}\PYG{o}{.}\PYG{n}{SE3}\PYG{p}{(}\PYG{n}{rotation}\PYG{p}{,} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ones}\PYG{p}{(}\PYG{l+m+mi}{3}\PYG{p}{))}\PYG{o}{.}\PYG{n}{homogeneous}\PYG{p}{)}
+
+    \PYG{n}{viz}\PYG{o}{.}\PYG{n}{display}\PYG{p}{(}\PYG{n}{robot}\PYG{o}{.}\PYG{n}{q}\PYG{p}{)}
+    \PYG{n}{moveTowardEllipsoid}\PYG{p}{(}\PYG{n}{args}\PYG{p}{,} \PYG{n}{robot}\PYG{p}{,} \PYG{n}{Sigma\PYGZus{}w\PYGZus{}goal}\PYG{p}{,} \PYG{n}{viz}\PYG{p}{)}
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}log\PYGZus{}manager}\PYG{o}{.}\PYG{n}{plotAllControlLoops}\PYG{p}{()}
+
+    \PYG{k}{if} \PYG{n}{args}\PYG{o}{.}\PYG{n}{real}\PYG{p}{:}
+        \PYG{n}{robot}\PYG{o}{.}\PYG{n}{stopRobot}\PYG{p}{()}
+
+    \PYG{k}{if} \PYG{n}{args}\PYG{o}{.}\PYG{n}{visualizer}\PYG{p}{:}
+        \PYG{n}{robot}\PYG{o}{.}\PYG{n}{killManipulatorVisualizer}\PYG{p}{()}
+
+    \PYG{k}{if} \PYG{n}{args}\PYG{o}{.}\PYG{n}{save\PYGZus{}log}\PYG{p}{:}
+        \PYG{n}{robot}\PYG{o}{.}\PYG{n}{\PYGZus{}log\PYGZus{}manager}\PYG{o}{.}\PYG{n}{saveLog}\PYG{p}{()}
+\end{Verbatim}

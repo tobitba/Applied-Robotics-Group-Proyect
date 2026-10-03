@@ -1,0 +1,240 @@
+\chapter{Installation}
+\section{Software dependencies}
+Tutorials and documentation of the dependencies is
+provided in the following chapter. Here they are simply
+listed for the purposes of installation.
+\begin{itemize}
+\item any Linux OS, MacOS or Docker on Windows+WSL
+\end{itemize}
+Python packages:
+\begin{itemize}
+\item Pinocchio - robot math
+\item NumPy - math
+\item matplotlib - plotter, log analysis
+\item meshcat, meshcat\_shapes - visualizer (NOTE: will be replaced with viser in the future)
+\item (optional) ur\_rtde - UR robots interface 
+\item (optional) ROS2 - YuMi, Mobile YuMi, and Heron interface
+\item (optional) Docker - SLuMi (to build the translation layer image)
+\item (optional)  qpsolvers, quadprog (default solver), proxsuite, ecos, pin-pink (uses quadprog under the hood) - ik solvers
+\item (optional) crocoddyl - opc/mpc: 
+\item (optional) casadi (requires pinocchio > 3.0) - altertive ocp 
+\item (optional) shapely - dynamic system based path planning
+\item (optional) opencv-python - visual servoing 
+\item (optional) pyqt6 - path input via drawing
+\item (optional) protobuf - networking
+\end{itemize}
+
+\section{Installation steps}
+\subsection{Python package - pip}
+You can install all 
+dependencies with conda or pip and then do a local pip install of SMC.
+conda is the most reliable method as Pinocchio and Crocoddyl
+ship primarily through conda-forge
+\fbox{\texttt{conda install pin -c conda-forge}}.
+Other packages can then 
+be installed either with conda or pip.
+
+Look in the Dockerfile for specific package names, 
+or consult the list above. Conda and pip installations 
+are ocassionally manually tested
+on Ubuntu 22 and 24, Arch Linux and MacOS. 
+Empirically, Ubuntu WSL on Windows works as well as a 
+normal Ubuntu installation.
+
+The library itself is in the python/smc directory. 
+Navigate to python directory and do a local pip install with 
+\fbox{\texttt{pip install -e .}}
+
+\paragraph{Author's note 1} 
+A file specifying the exact dependency versions is explicitely not provided.
+This is because it has to be continuously updated to be correct, 
+and SMC's author does not have the time for this. 
+Additionally, unless you are creating 
+a new virtual environment for every project,
+you will likely have to manually manage 
+versions of Python packages sooner or later.
+Moreover, you are expected to be(come) 
+familiar with the dependencies due to how heavily
+they are relied upon in the codebase, and their use in writing new code.
+You are forced to at least manually copy-paste 
+to install them as a pedagogical measure
+(on top of the lack of the author's time to properly maintain the code). 
+
+\paragraph{Author's note 2}
+If you are not running Linux (be it native, or in Docker or on WSL), 
+there is a high likelihood of
+something not installing or working correctly. 
+This is because some dependencies 
+are compiled (only) on Linux and are not available on other platforms 
+or do not have even have ports to other OS's.
+In general support for Linux is much better as it is 
+the de facto OS of choice in robotics,
+and is also much poorer than in other areas due 
+to a compartively low number of users.
+Manual compilation of those dependencies is guaranteed to be much more work
+than learning the basics of Linux's CLI and using Docker.
+
+\subsection{Virtual machine - Docker}
+In the interest of time and convenience, the library is shipped as a Docker image.
+This is primarily so that the user does not have to install
+Linux on hardware to use the library (although that is the
+best option if possible).
+Here the operational steps are listed, but there
+is a short introduction to Docker in the Dependencies chapter.
+
+\subsubsection{Installing Docker on Windows}
+\begin{enumerate}
+\item install wsl with "wsl --install" in powershell administrator, more at \href{https://learn.microsoft.com/en-us/windows/wsl/install}{windows docs}
+\item install docker on windows (with wsl option, should be default), more at \href{https://docs.docker.com/desktop/install/windows-install}{Docker docs}
+\item create the docker account 
+\item open docker desktop, navigate to Settings (by user/account button) -> Resources -> Network -> click on enable host networking
+\end{enumerate}
+
+\subsubsection{Installing Docker on MacOS}
+\begin{enumerate}
+\item go to [docker webpage](https://docs.docker.com/desktop/setup/install/mac-install/). 
+   select the docker for your processor (intel or apple silicone).
+   download and install docker-desktop.
+\item if using user-level installation, add docker commands to path with 
+		\newline
+		\fbox{\texttt{export PATH=[path\_to\_docker\_bin,ex /Users/yourusername/.docker/bin]:\$PATH}}.
+   put this into your .bashrc or .zshrc if you don't want to do it every time you start the terminal (it's just another environment variable).
+\item create the docker account 
+\item open docker desktop, navigate to Settings (by user/account button) -> Resources -> Network -> click on enable host networking
+\item extra step to open windows from docker: 
+		\begin{enumerate}
+				\item install xquartz from \href{xquartz.org}{xquartz.org}. 
+						this is needed for real-time-plotting and 
+						other graphs to be shown
+   (they need to open a window to do that). 
+\item reboot after installing for the program to take effect.
+\item   then you start the xquartz app. it won't open any window, but in the top-left corner you will see its name (next to apple logo).
+   clik on that, go to settings -> security -> clik on "allow connections from network clients" (the docker container will use the localhost network 
+   to interface). 
+\item you need to reboot again for this to take effect.
+		\end{enumerate}
+\end{enumerate}
+
+
+\subsubsection{Building or pulling the SMC Docker image}
+Here are the steps to get to your container running once Docker is installed.
+You can either build the image locally or pull it from our server (better because it won't take long).
+To proceed you need to have the Docker desktop GUI app running (open).
+
+\paragraph{ Building the image locally}
+\begin{itemize}
+\item [WINDOWS] open wsl (type wsl in powershell) and navigate to git folder (now in wsl) with 
+		\newline
+		"cd /mnt/Users/YOURUSERNAME/PATH\_TO\_GIT\_FOLDER"
+\item [MAC] open a terminal and navigate to git folder with 
+		\newline
+		"cd /mnt/Users/YOURUSERNAME/PATH\_TO\_GIT\_FOLDER"
+\item build the image with "docker build -t smc -f docker/Dockerfile ." NOTE: if you are on mac and have an apple silicone processor,
+    you might need to change the ubuntu version to one that works on the apple silicone processor.
+\end{itemize}
+
+\paragraph{Pulling the image}
+\textbf{TODO: docker pull is depricated, server needs to be updated}.
+\begin{itemize}
+\item login to our docker server with "docker login docker.control.lth.se -u docker\_repo" with password "repo\_Docker"
+\item pull the image with "docker pull 
+\end{itemize}
+
+\paragraph{Using the image}
+\begin{enumerate}
+\item   [Linux and MAC]: NOTE: FIRST RUN \fbox{\texttt{xhost +}} EVERY TIME before you run the image. otherwise docker can't open new windows,
+   so real-time-plotting won't work. 
+\item [MAC] you need to have xquartz installed to have the xhost + command (look at installation for more).
+   NOTE! if you don't get real-time-plotting with xhost +, do xhost + 127.0.0.1 and replace -e DISPLAY=\$DISPLAY with 
+   -e DISPLAY=127.0.0.1:0 .
+\item to run the image run 
+		\newline
+		\fbox{\texttt{docker run --rm -it --net=host -e DISPLAY=\$DISPLAY -v /tmp:/tmp smc /bin/zsh}}
+\item   [WINDOWS]: NOTE: i've been told that mapping the /tmp folder is not necessary on windows and that it in fact might cause problems.
+   in this case just remove the "-v /tmp:/tmp" from the command
+\item verify installation by running an example with --visualize-manipulator and --real-time-plotting arguments
+\item if you want to make persistent changes to the code from the docker, you need to use the -v argument in docker run to share the folder
+   with the code between your native OS (host) and the docker container. 
+   in particular, use 
+   \newline
+   \fbox{\texttt{-v [path\_to\_folder\_on\_host]:[path\_to\_that\_folder\_in\_docker\_container]:rw .}}
+   notice the :rw at the end. this allows for both the host and the container to modify the files (otherwise they will be read-only).
+\end{enumerate}
+
+\paragraph{MacOS note}
+Unfortunately, --net=host does not work on Mac. You will have to bind the 7000 port where Meshcat (visualizer for SMC) appears
+with -p 127.0.0.0:7000:7000 . If Meshcat opens new ports (7001, ...) because it didn't close properly, killall python3 should get rid
+of the non-closed ports. Alternatively bind a series of ports, say 7000-7010 for slightly more convenience.
+
+\paragraph{Specific usage advice}
+Do not change library code, or write your example in the examples directory.
+These are owned by the image, and no changes to them will be saved.
+If you want persistent changes there, you will need to rebuild the image.
+This is almost certainly avoidable and completely unnecessary. 
+Instead, map a directory on your host OS (or wsl) to a directory on the image,
+and give it read-write privileges. This way you can work on your code
+normally, and you don't have to rebuild the image.
+The change you think is necessary to some RobotManager or ControlLoopManager can almost 
+certainly be achieved with an external function, and be applied
+in a custom controlLoop.
+Of course, if you think it is valuable to more than yourself,
+contact me, I would love to integrate your functionality into the library itself.
+
+\paragraph{Installing additional software on the image}
+Install things as you would normally (using apt in the terminal etc).
+To get this to be a part of the Docker image, just use
+the RUN [...] command in the Dockerfile, where you replace [...] with the
+command you used to install what you installed normally.
+Don't forget to build the image to apply these changes!
+I highly recommend adding software this way, because
+it will allow you to share the exact same set-up between your colleagues,
+which will help you avoid headaches in the future.
+
+NOTE that if you build many images docker will very quickly use up a lot of your hard drive. 
+It does this because it saves the 
+To solve this
+
+\subsection{Native installation (installing ubuntu)}
+\begin{enumerate}
+\item Either create a disk partition for Ubuntu on your hard drive, or use an external hard drive. In the first case, you might need to shrink your existing partition. Searching for "how to create a disk partition [your\_OS]" or "install ubuntu on [your\_OS]" will get you all the information you need. Ideally, back up your data before any of this (you should be doing this in general as it's good practice).
+\item Download an Ubuntu 22 LTH iso (file which contains everything needed for installation), available at official Ubuntu websites
+\item Create a bootable USB. In short, you can't just copy an iso file to a USB and boot from it. Just google how to do it on your OS (use rufus if on windows).
+\item Enter BIOS to ensure you can boot from your USB. Ideally this step should just be to enable Boot menu, but this step is dependent to a specific computer. Any reasonable Ubuntu (or any Linux) installation guide should have detailed steps, but also consult your laptop manufacturer websites for BIOS steps if the steps won't be obvious/easy to follow.
+\item Boot from the Ubuntu USB and install it to the partition/external disk from step 1. MAKE SURE you are installing to the right partition. To select the partition, select the "Advanced installation" option (selecting the partition is the only advanced thing you need). Otherwise just follow the installation instructions you get once you boot into the USB, they are quite well done.
+\end{enumerate}
+
+\section{Installing along with ROS2}
+Since ROS is very easy to completely break during normal usage, you are strongly encouraged to use virtualisation.
+This is especially valuable when switching ROS versions.
+The most common and reliable virtualisation option in this case too is Docker.
+Having that said, ROS Docker containers still rely on an Ubuntu host to actually work
+(you have been warned if you try using a different host distribution).
+Thankfully, in the case of Windows, Ubuntu on WSL will be OK.
+
+Regarding the SMC-ROS Docker installation which also covers installation
+of drivers for supported robots, look into the supported hardware appendix.
+If you are extending SMC to a new robot running ROS,
+read the following subsection.
+
+
+\subsection{ROS containers repo}
+An amazing resource to set up a Docker image with ROS is
+\href{https://git.cs.lth.se/robotlab/ros-containers}{ROS containers}
+developed at Lund University's Computer Science department.
+It does a batteries-included installation of ROS in Docker
+and of Docker itself.
+It shares the home directory with the host system by default,
+and makes the image persistent.
+There it is easy to do a native Linux installation of SMC.
+Just \textbf{note} that you should do a non-virtualised
+installation of Python dependencies as working virtualised
+Python environments and ROS is very annoying,
+and yields you no benefits (just make one more container 
+in case of conflicting packages).
+
+Otherwise, if you prefer managing Docker yourself,
+you may write a Dockerfile which uses
+an image with Ubuntu with ROS as a starting off point
+and adding in the SMC part.
+You can probably get away with simply copy-pasting
+from the ROS-less Docker image for SMC.

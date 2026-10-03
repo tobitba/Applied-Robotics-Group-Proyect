@@ -1,0 +1,19 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{genericControlLoop}\PYG{p}{(}
+    \PYG{n}{X}\PYG{p}{:} \PYG{n}{Any}\PYG{p}{,}
+    \PYG{n}{args}\PYG{p}{:} \PYG{n}{Namespace}\PYG{p}{,}
+    \PYG{n}{robot}\PYG{p}{:} \PYG{n}{AbstractRobotManager}\PYG{p}{,}
+    \PYG{n}{t}\PYG{p}{:} \PYG{n+nb}{int}\PYG{p}{,}  \PYG{c+c1}{\PYGZsh{} will be float eventually}
+    \PYG{n}{past\PYGZus{}data}\PYG{p}{:} \PYG{n+nb}{dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{deque}\PYG{p}{[}\PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{]],}
+\PYG{p}{)} \PYG{o}{\PYGZhy{}\PYGZgt{}} \PYG{n+nb}{tuple}\PYG{p}{[}\PYG{n+nb}{bool}\PYG{p}{,} \PYG{n+nb}{dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{],} \PYG{n+nb}{dict}\PYG{p}{[}\PYG{n+nb}{str}\PYG{p}{,} \PYG{n}{np}\PYG{o}{.}\PYG{n}{ndarray}\PYG{p}{]]:}
+    \PYG{n}{breakFlag} \PYG{o}{=} \PYG{k+kc}{False}
+    \PYG{n}{log\PYGZus{}item} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+    \PYG{n}{save\PYGZus{}past\PYGZus{}item} \PYG{o}{=} \PYG{p}{\PYGZob{}\PYGZcb{}}
+
+    \PYG{c+c1}{\PYGZsh{} compute breakFlag and v\PYGZus{}cmd however you want}
+
+    \PYG{n}{robot}\PYG{o}{.}\PYG{n}{sendVelocityCommand}\PYG{p}{(}\PYG{n}{v\PYGZus{}cmd}\PYG{p}{)}
+
+    \PYG{n}{log\PYGZus{}item}\PYG{p}{[}\PYG{l+s+s2}{\PYGZdq{}q\PYGZdq{}}\PYG{p}{]} \PYG{o}{=} \PYG{n}{robot}\PYG{o}{.}\PYG{n}{q}
+    \PYG{k}{return} \PYG{n}{breakFlag}\PYG{p}{,} \PYG{n}{save\PYGZus{}past\PYGZus{}item}\PYG{p}{,} \PYG{n}{log\PYGZus{}item}
+\end{Verbatim}

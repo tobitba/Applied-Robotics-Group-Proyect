@@ -1,0 +1,616 @@
+\chapter{Required prior knowledge}
+
+\section{Assumed prior knowledge}
+The target audience are engineering students.
+We assume Bachelor level engineering knowledge of mathematics,
+physics, programming and control.
+The list of required topics is given below,
+followed by some key concepts from said topic.
+%A simple litmus test for whether you know enough is the following.
+%Say I give you a URL to a csv file which contains
+%the points of a n-dimensional quadratic function.
+%Can you need to find the minimum of this function?
+%This would entail that you open an empty Python file, 
+%download the file and load the points, 
+%do a least-squares fit of a quadratic on them,
+%and then either implement vanilla gradient descent 
+%or explicitly compute the minimum by solving for x at gradient 
+%equal to zero (and knowing why both of these work.)
+
+\begin{itemize}
+		\item (multivariate) calculus: partial derivatives, gradients,...
+		\item linear algebra: matrix inverse, nullspace...
+		\item mechanics: dynamics, Lagrangian mechanics
+		\item basic convex optimization: convex functions, 
+				gradient descent,...
+		\item basic programming: OOP concepts, algorithm complexity,...
+		\item introductory control course: error dynamics,  
+				stability, PID control,...
+\end{itemize}
+
+
+\section{Topics covered in pre-requisites tutorials}
+In order to work with robots, you will need to some
+very basic operating systems (OS) concepts.
+The target OS is Linux as it the standard in robotics,
+but the topics covered apply to any OS.
+In order to work with the library, you will need to know
+how to program in Python and some experience
+with a few important packages such as NumPy.
+Since these are not always covered outside of a
+computer or data science curriculum,
+dedicated tutorials have been developed to fill in the gaps.
+All of these topics are covered in the context of
+the SMC library and robotic control with concrete examples.
+
+Following the pre-requisites there are dedicated
+tutorials on using SMC. Finally, 
+there is a small crash introduction to Lie algebra for robotics,
+and a crash introduction to project management as
+even small robotics projects can get very convoluted,
+very fast, if one is not careful and deliberate.
+
+Tutorials on Linux, Python and the SMC library 
+are in 
+\href{https://gitlab.control.lth.se/marko-g/LPR-tutorials}{LPR tutorials}.
+These tutorials are in both text and video formats 
+(TODO atm the text is only a list of topics, while
+the videos are actual tutorials).
+Just the videos can be found in the following 
+\href{https://www.youtube.com/playlist?list=PLKOlTxWSIaGWsaJwz6oKtgGB1Ukv_RIeP}{YouTube playlist}.
+
+The tutorials aim to give you an overview of the topics,
+tell you only the essential information, and refer you
+to other resources for anything else. You might need
+all of them, or none of them --- have a look to be sure
+you're covered.
+The topics covered, and the main goal are:
+\begin{itemize}
+		\item The GNU/Linux command line interface (CLI) - 
+				navigating directories, installing packages
+		\item Docker - (special) virtual machines,
+				building images (SMC Docker image) and running
+				containers
+		\item Networking - IP address and ports, creating
+				new connections (creating a manual fixed-IP connection
+				to the robot), basic debugging
+		\item Python - syntax, standard library and some gotchas,
+				basic packages like NumPy, matplotlib, SciPy
+		\item Multiprocessing - most basic inter-process communication
+				(IPC), running a function in parallel in Python
+		\item Computer vision - common modern approaches
+				and short introduction to OpenCV
+		\item Robotics - high level description
+				of what a robot is and basic control 
+				approaches
+		\item Lie algebra - concepts required to understand
+				robot kinematics - \textbf{it's easier
+				to learn this than to try to avoid it}
+		\item SMC - intro and overview, Pinocchio
+				(package for robot math),
+				tutorial on leveraging exiting controllers,
+				tutorial on writing a new controller
+		\item Project management - project planning,
+				iterative prototyping, software management with git
+\end{itemize}
+There is also bonus content for some of the topics
+to try to convince you that it's worth it to dig
+a bit deeper.
+
+Books, websites and documentation of other topics will be provided 
+as they appear in the text.
+
+
+\section{Robotics}
+\label{sec-robotics-into}
+This section is by absolutely no means a proper
+introduction to robotics. 
+For this the reader is referred to the following books:
+\cite{murray,lynch}.
+In particular the following chapters:
+\begin{itemize}
+		\item TODO: Lynch, list key chapters
+		\item TODO: Murray, list key chapters
+		\item \href{https://scaron.info/robotics/jacobian-of-a-kinematic-task-and-derivatives-on-manifolds.html}{this excellent blog post}.
+\end{itemize}
+
+%The twist $ V_{ \text{error} }  $ 
+%corresponds to the velocity such that moving 
+%from frame $ \left\{ e \right\}    $, with twist $ V_{  e}  $, for
+%one unit of time, leads to the $ \left\{ g \right\}   $ 
+%frame.
+%Said another way, if $ \left\{ V_{  e} \right\}   $ is
+%the body velocity of the end-effector frame for one unit
+%of time, it gets to the goal frame.
+%The reason this works has to do with Lie algebra.
+%Detailed overview can be found in ex. 
+%Frank C. Park, Kevin Lynch - Modern Robotics
+%or Murray, R.M., Li, Z. and Sastry, S.S., 2017. A mathematical introduction to robotic manipulation. CRC press,
+%or on 
+%\href{https://scaron.info/robotics/jacobian-of-a-kinematic-task-and-derivatives-on-manifolds.html}{this excellent blog post}.
+
+However, we can not allow perfection to be the enemy of good.
+Going through a robotics course and reading a few introductory 
+books is objectively speaking not a hard requirement 
+to get into robotics and robot control.
+This is because we can leverage software to hide and 
+automatically deal with many of the robotics concepts
+and math. Just as one does not need to have read the
+TCP standard and the rest of RFCs in order to open
+a web browser and search the internet.
+Having that said, working with robots is much more
+involved than searching for recipes online,
+and some amount of technical detail is simply unavoidable.
+This is especially the case for engineers working with robots.
+Also, knowledge is power, and the more knowledge you have,
+the more you can do.
+
+The purpose of this section is to at least lay out
+the basic concepts and terminology required to specify 
+a task for the robot. Additional mathematical detail
+is laid out in the Control section \ref{sec-control}.
+Depending on what you're trying to achieve you'll need
+none of that, or it won't be nearly enough.
+Hence it is advised to follow a top-down approach, 
+i.e. to utilize the concepts described here and the 
+ready-made controllers until this stops being enough the problem at
+hand, at which point one should dig into the underlying math
+to get a good understanding of what's happening.
+
+\subsection{Basic terminology}
+\label{sec-robotics-terminology}
+A robot is series of \textbf{actuators} (motors) connected with 
+\textbf{links}. For the purposes of this text, all
+links are \textbf{rigid} and the motors work perfectly
+(no friction, instantaneous reference reaching).
+A robot \textbf{joint} is a combination of an actuator
+and a link --- basically the robot's equivalent of limb.
+In the case of a rotational motor we have
+a revolute joint whose position is described in radians.
+A series of joints creates a \textbf{kinematic chain}.
+If only one end is ``bolted'' to a table or floor,
+while the other is free, we call it an \textbf{open kinematic chain}.
+Otherwise, it is a \textbf{closed kinematic chain}.
+An open kinematic chain robot consisting of revolute joints
+is referred to as a \textbf{robotic manipulator} (more or less).
+Thus one might consider a quadruped a combination of 4 manipulators,
+which form a closed kinematic chain when legs are touching the ground.
+
+Since we have access to joint positions through encoders
+in the motors, 
+the robot is most naturally modelled with Lagrangian mechanics.
+The set of all joint positions $ q  $ 
+forms \textbf{joint/configuration space}.
+The physical 3D environment around the robot
+is referred to as \textbf{operational space}.
+
+Robots are controlled either through \textbf{velocity control}
+$ u = \dot{q}  $
+or \textbf{torque control} $ u = \tau  $. 
+If the robot moves relatively slowly, it's acceleration
+is low, and thus the dynamic effects are small.
+In such a case velocity control suffices and dynamic
+effects can simply be treated as errors.
+In the majority of the text this is the assumed scenario.
+However, if the robot is carrying heavy loads, has to move
+quickly, or needs to balance (ex. if it's a humanoid),
+then its full dynamics need to be modelled 
+and the robot has to be controlled through torque control.
+
+Since we want the robot to act in its environment,
+we usually define tasks in operational space.
+But we have to control the robot in joint space!
+Thus it is essential to understand the relationship between
+joint and operational space. How this is done then
+directly informs the control strategy. 
+Hence, we postpone this discussion to the Control section
+\ref{sec-control}.
+
+As it turns out, the operational space is not so simple.
+There are two main problems which need addressing.
+The first is the definition of a position of an object.
+A point in space can be described with 3 numbers corresponding
+to x,y, and z coordinates. However, an object is more than just
+one point! Thus we need \textbf{position} and \textbf{orientation}
+to describe where a (rigid) object is in space.
+Critically, orientations (rotations) do not form a vector space,
+meaning they can not be added or subtracted directly.
+Thankfully this is not a problem at all if one uses the \textbf{Lie
+algebra} formalism, which is introduced in the following subsection.
+The second problem is that every single relevant quantity
+in the environment has to be described in some \textbf{coordinate frame}.
+And as it very quickly turns out, trying to directly
+define everything in one coordinate frame is cumbersome
+to the point of impossibility.
+The solution is to define quantities in convenient coordinate
+frames, and define \textbf{coordinate transformations} 
+between these frames.
+Thankfully, this approach is very easy once one gets used 
+to it (although will always and forever remain somewhat tedious).
+
+\subsection{Geometry}
+\label{sec-robotics-geometry}
+\subsubsection{Rigid body coordinates}
+A point in space $ p \in \mathbb{R}^{3}  $ can be describe
+with 3 coordinates. A rigid body has many points,
+but they are always in the same relation to each other,
+no matter where the body is in space.
+Hence we can define a coordinate frame in, and attached to,
+the body itself. If we know where this coordinate frame
+is, we know where every point of the body is.
+This is thus exactly equivalent to describing
+where one coordinate frame is with respect to another.
+And, once we know we have this description,
+we also have the recipe to transform coordinates of 
+these coordinate frames.
+
+The position of the coordinate frame is simply the position
+of its origin, so again $  p \in \mathbb{R}^{3}    $.
+Its orientation can be determined by describing each unit axis
+of the frame, which yields a \textbf{rotation matrix}
+$ R \in \mathbb{R}^{3 \times 3}  $
+\begin{equation}
+		R = \begin{bmatrix} \hat{x} & \hat{y} & \hat{z} \end{bmatrix} .
+\end{equation}
+Alternatively, one can use quaternions or Euler angles
+to represent rotation.
+On paper, or in code, the choice doesn't matter as long as the software
+transforms whatever representation you gave it into
+quaternions, and handles all the subsequent operations for you,
+which is the case in Pinocchio (and thus in SMC).
+Long story short, 
+rotation matrices and quaternions correctly
+cover the space of rotations (and are equivalent descriptions), 
+and quaternions are more
+computationally efficient.
+Euler angles do not map all rotations correctly,
+but are the only truly intuitive description ---
+they allow you to rotate something by 20 degrees.
+
+Here there are 2 key things to note.
+Firstly, in practise, one can always \textbf{visualize all the frames and
+operations on them} and visually verify that the correct 
+operational is taking place.
+Secondly, for purposes of designing control,
+we only care about the \textbf{mathematical properties}
+of rotations, and never care about the exact values.
+Thus, the idea is to know the theory, code it up correctly,
+and then set the frames correctly once, and verify them visually.
+\textbf{With computers, there is absolutely no benefit in flipping
+through coordinates in your head.}
+
+With this in mind, we will develop the theory by
+assuming the rotation matrix representation.
+Here we should note the following.
+A position of rigid body is given by its position $ p  $ and orientation $ R  $.
+Orientations can be written down in many ways,
+and in this text it will be a rotation matrix $ R  $.
+The pose (coordinate frame) of the body $  \left\{ b \right\}     $ 
+in frame $  \left\{ a \right\}     $ is given by
+$ T_{ a }^{ b }  $.
+The same notation is used for rotations: $ R_{ a }^{ b }  $
+is the orientation of frame $ \left( b \right)   $ as seen in frame $ \left( a \right)   $.
+Mathematically,
+unless explicitly stated otherwise, this object should be considered as a 
+homogeneous  transformation matrix 
+\begin{equation}
+T_{ a }^{ b }= 
+\begin{bmatrix} 
+	R_{ a }^{ b } \in \mathbb{R}^{3 \times 3} & p_{ a }^{ b } \in \mathbb{R}^{3} \\
+	0 \in \mathbb{R}^{1 \times 3} & 1
+\end{bmatrix} 
+\end{equation}
+The reason for this format is the following.
+If you multiply 2 of these matrices, 
+the result will again be a homogeneous transformation matrix.
+And why do we care about that? Because multiplying
+homogeneous transformation matrices is how we do transforms
+coordinates from one frame to another!
+For example, say you have the position of frame
+$ \left\{ c \right\}   $ in frame $ \left\{ b \right\}   $,
+i.e. $ T_{ b }^{ c }  $, and likewise you have the position
+of frame $ \left\{ b \right\}   $ in frame $ \left\{ a \right\}   $,
+i.e. $ T_{ a }^{ b }  $.
+To get the position of frame $ \left\{ c \right\}   $ in 
+coordinates of frame $ \left\{ a \right\}   $ we simply do
+\begin{equation}
+T_{ a }^{ c } = T_{ a }^{ b } T_{ b }^{ c }
+\end{equation}
+And yes, you can always cancel corresponding superscripts and subscripts 
+like this!
+Lastly, similar to rotations,
+\begin{equation}
+		(T_{ a }^{ b })^{ -1 } = T_{ b }^{ a }
+\end{equation}
+
+Equipped with this knowledge, you are ready to define a target
+for the robot to go to, and just apply a controller 
+to reach this target.
+\textbf{You don't need any extra knowledge to start programming the robot!}
+
+However, to develop new controllers for the robot, and get the most
+out of the existing ones, we need to go one step further.
+
+\subsubsection{Lie algebra for robotics}
+\label{sec-robotics-lie-algebra}
+As mention, the space of rotations is not a vector space,
+so we can't add rotations together.
+The space of 3D rotations is denoted by $ SO (3)  $.
+In mathematics $ SO (n)  $ groups are called orthogonal groups,
+and they fall into the class of groups called Lie groups.
+There are different equivalent representations of orthogonal groups,
+and rotation matrices are one of them.
+Rotation matrices have the following properties:
+\begin{gather}
+		R^{ T } R = I  \implies R^{ -1 } = R^{ T } \\
+		det(R) = 1
+\end{gather}
+And now we can write that
+for $ R_{ 1 }, R_{ 2 } \in SO(3), R_{ 1 } + R_{ 2 } \notin SO(3)  $.
+Mathematically speaking, $ SO(3)  $ is not a field,
+but a group. If using the rotation matrix representation,
+the group operation $ (\cdot)  $ becomes matrix multiplication,
+and for quaternions it becomes quaternion multiplication.
+The point of this is that we can abstractly describe what the group is,
+and what the group operation is (every operation has an inverse, there is
+an identity element and so on).
+Then any representation that complies with the abstract description works.
+
+But what we care about for robotics is the following.
+Say you have some $ R_{ 1 }  $ and $ R_{ 2 }  $,
+and how what to know what is the ``difference'' between them.
+As in how much do you need to rotation $ R_{ 1 }  $ to get to $ R_{ 2 }  $.
+This is computed as follows:
+\begin{equation}
+R_{ 1 }^{ 2 } = R_{ 1 }^{ -1 } R_{ 2 } = R_{ 1 }^{ T } R_{ 2 }
+\end{equation}
+
+Rigid body transformations, coordinate transformations,
+and coordinate frame descriptions are all just differently
+interpreted elements of the special Euclidean group $ \mathbb{SE} (3)  $,
+which is simply the combination of the orthogonal group and 3-dimensional
+vectors space: $  \mathbb{SE} (3) = \mathbb{R}^{3} \times SO (3)   $.
+It is likewise a Lie group.
+It follows the same story as rotations:
+$    T_{ 1 }, T_{ 2 } \in \mathbb{SE}(3), T_{ 1 } + T_{ 2 } \notin \mathbb{SE}(3)  $
+for exactly the same reason.
+And we compute the ``difference'' between two frames in the same way:
+\begin{equation}
+T_{ 1 }^{ 2 } = T_{ 1 }^{ -1 } T_{ 2 } = T_{ 1 }^{ T } T_{ 2 }
+\end{equation}
+
+\paragraph{So what are rigid body velocities then?}
+Defining a vector field in a vector space is a straightforward affair.
+Every point in space $ p \in \mathbb{R}^{n}  $ gets an associated vector 
+$ v \in \mathbb{R}^{n}  $ of the same dimension.
+The set of these vectors again form a vector space.
+In particular, if you have a vector $ v_{ 1 }  $ at point $ p_{ 1 }  $,
+you can add or subtract it from a vector $ v_{ 2 }  $ at point $ p_{ 2 }  $
+and have a well-defined operation.
+To ground this in physics, say there is a particle following some trajectory
+$ \gamma (s) \in \mathbb{R}^{ 3 }, s \in \mathbb{R}  $.
+Tangents of curve $ \gamma (s)  $, i.e. $ \dot{\gamma} (s)  $ would be these vectors,
+and they would represent the instantaneous velocity at each point of the curve.
+In this case, what is implied by the vector field being a vector space is that
+we can directly compare velocities at different points. A vector 
+$ v = \begin{bmatrix} 2 & 1 \end{bmatrix}   $ will mean exactly the same
+thing be it attached to point $ p_{ 1 }  $ or $ p_{ 2 }  $.
+
+But Lie groups are not vector spaces. Formally speaking, they form a complete
+manifold, which is to say they form a ``curved space''. 
+Understanding what this really means requires learning differential geometry.
+But here we simply want to have a conceptual understanding to help
+us apply correct equations and understand what is going on with a robot.
+So in lieu of mathematical formalism, consider the following example.
+The surface of the Earth is a sphere. While space is 3-dimensional,
+we only need to coordinates to uniquely describe every point on the Earth:
+latitude and longitude. Thus the surface of Earth is a 2-dimensional object.
+This 2-dimensional object is curved. When you add two of its points described in 3D,
+you leave the surface and end up somewhere in space.
+Thus viewing it as an object defined in 3D vector space is not helpful.
+
+Now imagine there is an airplane travelling the surface of the Earth along a curve $ \gamma(s)  $,
+going ``straight'' from Australia to Great Britain.
+Imagine the 3D velocity vector of the airplane when it is above Australia.
+And now imagine how it looks when it's above Britain.
+They are pointing in different directions. But, from the pilot's perspective,
+she has been flying in the same direction, and measured the same velocity
+through the whole flight!
+Thus, in this scenario, it also isn't helpful to consider velocities 
+as 3D vectors in ``ambient space'', as we can not meaningfully compare
+velocities at different points of the sphere.
+
+
+So now what?
+The first thing to note is that at each point $ p  $,
+the set of velocities does form a vector space, because clearly
+it makes sense to compare velocities while being at the same point.
+This vector space is called a \textbf{tangent space}, and it is always
+associated with the point it is attached to.
+The second thing to note is that the velocity vector changes 
+smoothly between $ \gamma (s)  $ and $ \gamma (s + \epsilon)  $.
+So one can form a differential relationship between 
+$ \dot{\gamma} (s)  $ and $ \dot{\gamma} (s + \epsilon)  $.
+This of course depends on how the space in which $ \gamma  $ lives is curved,
+but the point is a sensible mathematical description can be constructed.
+
+Turning back to the airplane example. The airplane is travelling at a constant velocity,
+which is some vector $ v  $. Looking from ambient space, it changes direction
+a we progress along $ \gamma (s)  $, while looking the same from the curved surface.
+Moving a constant vector along a curve on a curved surface 
+is done via \textbf{parallel transport}.
+If we know what the surface is, and know how to do parallel transport,
+we can know where we will end up, denoted by $ p_{ 2 }  $, if we start at $ p_{ 1 }  $
+and go with velocity $ v  $ for a unit period of time.
+To cut a long story short, this is done via
+the \textbf{exponential map}:
+\begin{equation}
+p_{ 2 } = \exp (v) p_{ 1 }
+\end{equation}
+Likewise, we can compute a velocity one needs to travel at to go from
+$ p_{ 1 }  $ to $ p_{ 2 }  $ in a unit amount of time via
+the \textbf{logarithmic map}:
+\begin{equation}
+v = \log (p_{ 1 }^{ 2 }) = \log (p_{ 1 }^{ -1 }p_{ 2 })
+\end{equation}
+Note that for rotation matrices and homogeneous transformation matrices,
+the operations $ \exp  $ and $ \log  $ are the matrix exponential
+and matrix logarithm respectively (they're different for quaternions),
+and there are efficient algorithms for their computation.
+
+Here are some important properties to keep in mind.
+To begin, the set of velocities forms a \textbf{Lie algebra}.
+Formally speaking, it is defined as the tangent space of the identity
+element of the associated Lie group. 
+Thus a Lie algebra is a vector space.
+Speaking loosely, we can meaningfully compare different tangent vectors (velocities)
+by mapping them to the same tangent space via parallel transport,
+and then mapping them back to their original points.
+Note that this is mathematical construction baked into the exponential
+and logarithmic maps, and you don't need to compute this yourself.
+For the $ SO (3)  $ group, its Lie algebra is denoted with 
+$ so (3) \subset \mathbb{R}^{3} $,
+and for the $ \mathbb{SE}(3)  $ group its Lie algebra
+is denote with $ se(3) \subset \mathbb{R}^{6}  $.
+
+Crucially for us, the exponential and logarithmic maps provide a direct
+unique correspondence between a Lie group and its Lie algebra.
+What does this mean? The exponential map turns a velocity,
+i.e. a tangent vector into a group element, and the logarithmic map does the opposite:
+\begin{gather}
+T_{ 2 } = T_{ 1 }^{ 2 }T_{ 1 } \\
+\log:  T_{ 1 }^{ 2 }\mapsto v_{ 1 } \\
+\exp: v_{ 1 } \mapsto T_{ 1 }^{ 2 } 
+\end{gather}
+
+With this, we can return to rigid body kinematics.
+Say you have an object at location
+$ T_{ w }^{ o }  $ described in the world frame,
+and you want to know how it should move to get to $ T_{ w }^{ goal }  $.
+First you can compute the transformation from the current pose to the goal pose:
+\begin{equation}
+T_{ o }^{ goal } = (T_{ w }^{ o })^{ -1 } T_{ w }^{ goal }
+\end{equation}
+Taking $ v_{ o } = \log (T_{ o }^{ goal })  $, we get that 
+if the object, described by its coordinate frame $ \left\{ o \right\}   $,
+travels at velocity $ v_{ o }  $ for one unit of time,
+it will reach $ T_{ w }^{ goal }  $ from its starting position.
+The velocity coordinates corresponding to positions are called
+\textbf{linear velocities} $ v  $, while those corresponding to orientations
+are called \textbf{rotational velocities} $ \omega  $.
+When we want to emphasize that a velocity is an element of $ se (3)  $,
+we call it a \textbf{twist} and write $ \mathcal{V} = 
+\begin{bmatrix} v & \omega \end{bmatrix}^{ T } \in se (3) $.
+\textbf{Note:} it is crucial to note that the velocity $ v_{ o }  $
+is \textbf{described}  in the $ \left\{ o \right\}   $ frame in this calculation.
+This is maybe a bit weird to think about as the frame $ \left\{ o \right\}   $
+is moving together with the object. In other words, while that velocity is constant,
+it is changing with respect to a static frame.
+While somewhat confusing, this does not pose a problem when defining 
+control laws which leverage this description.
+
+\paragraph{What about forces?}
+Again, to cut a long story short, forces form a vector space
+in a manner very similar to velocities.
+The positional part of a force vector is called a \textbf{linear force} $ f  $,
+while the rotational part is called a \textbf{torque} $ \tau  $.
+When we want to emphasize that we are treating forces with
+the Lie group formalism, we refer to them as \textbf{wrenches},
+$ \mathcal{F} = \begin{bmatrix} f & \tau \end{bmatrix} ^{ T }   $.
+Formally speaking, wrenches are elements of the dual space of 
+Lie algebra denote $ se*(3)  $, which is also a vector space.
+This is important to have consistent definitions of work and power,
+but neither will be encountered in this text.
+
+\subsubsection{Note on practical use}
+In SMC, all kinematics and dynamics math is handled by the Pinocchio library.
+The code is written with the Lie algebra formalism.
+So there is a class \fbox{\texttt{SE3}} which describes an $ \mathbb{SE}(3)  $
+object. It can be constructed from a rotation matrix and a position vector,
+or a quaternion or a set of Euler angles. Likewise, 
+it can output any of these representation back.
+Every of the hitherto mention operations is implemented:
+group operation $ (\cdot)  $, inverses, exponential and logarithmic maps,
+and other operations that this text skipped (such as mapping a velocity to different
+frames with the adjoint map).
+
+All of these operations use quaternions in the background,
+which are the most computationally efficient representation.
+Furthermore, all of this happens in highly optimized C++ code which is exposed
+to Python via bindings.
+You are \textbf{strongly encouraged} to rely on these operations.
+This offers the following benefits:
+\begin{itemize}
+		\item This ensures the fastest possible computations on the market,
+				meaning your controller will be able to meet real-time requirements.
+		\item You do not need to think of representation details,
+				but only need to focus on the Lie algebra abstractions 
+				while implementing the math. This dramatically decreases the
+				mental load during implementation.
+\end{itemize}
+
+This is the reason why it is not necessary to learn all the mathematics
+to be able to program a robot using model-based control techniques, including developing
+new controllers --- all the ugly robotics math is hidden away behind an API. 
+From an practical operational standpoint, you are \textbf{strongly encouraged}
+to invest a few hours of days programming and visualizing different
+transformation and motions. What you want to achieve is that the following
+3 things correspond to each other harmoniously:
+\begin{enumerate}
+		\item math on paper
+		\item math in code
+		\item the visualization of that math in your head
+\end{enumerate}
+In other words, you want to achieve a visual correspondence of a motion in your head 
+and on the screen,
+i.e. you put down an equation on paper, then in code, thinking it looks like X,
+and then it really looks like X when visualized.
+Once you achieve this state you can easily define any task in operational space.
+
+Again, having that said, knowledge is power, and if you want to get serious
+about robot control, you will have to read the books, and be able to derive
+all the math results from first principles: 
+there is no other way to \textit{truly and completely} understand
+what is going on.
+From the author's personal experience, everything clicked only after
+also implementing all the equations in software as well --- programming
+exposes all handwaving in a constructive derivation.
+
+%\section{Software}
+%There are dependencies so important and integral to the SMC library
+%that they should be learned and gotten used to in their own right.
+%While they are quite common, some users may encounter them for the first time.
+%It is of course impossible to cover everything in detail,
+%but we can at least guide you to where you can learn more
+%and provide some context to make this a more pleasant experience
+%with a clear end in sight.
+%The aim of this section is to:
+%\begin{itemize}
+%		\item briefly introduce SMC's dependencies
+%		\item explain their role in SMC
+%		\item refer to their respective documentation
+%				and pointing to the most relevant parts
+%		\item give some non-obvious but helpful tips and tricks
+%\end{itemize}
+%
+%\subsection{Operating systems (Linux)}
+%\subsubsection{Basic of the Command Line Interface}
+%
+%\subsubsection{Docker}
+%
+%\subsubsection{Parallel computing}
+%
+%\subsubsection{Networking}
+%
+%\subsection{Python}
+%\subsubsection{NumPy}
+%\subsubsection{Matplotlib}
+%\subsubsection{OpenCV}
+%\subsubsection{Pinocchio}
+%\subsection{Optional dependencies}
+%\subsubsection{Crocoddyl}
+%\subsubsection{Pink}
+%
+%\section{Project management}
+%\subsection{Project plans}
+%\subsection{Git}

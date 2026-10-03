@@ -1,0 +1,134 @@
+\subsection{Universal robots' robots}
+\subsubsection{Interface used by SMC}
+We use the \href{https://sdurobotics.gitlab.io/ur_rtde/introduction/introduction.html}{ur\_rtde}
+implementation of the \href{https://www.universal-robots.com/developer/communication-protocol/rtde/}{RTDE protocol}.
+It is very straightforward and works exactly as expected for SMC purposes and API.
+The particulars can be found in table \ref{table-smc-ur-rtde-interface}.
+At a higher level, the robot opens a TCP socket dedicated to the RTDE protocol 
+at port 30002(? could be +/- 1 or 2, doesn't matter really).
+ur\_rtde creates a client side TCP socket which connects to the robot's RTDE socket.
+All socket calls, message serialization etc is handled by ur\_rtde and it works without faults.
+Importantly,  ur\_rtde fetches all data from the robot at every time-step,
+and stores it in its internal struct. This means that there is no communication
+cost to accessing particular data.
+
+On the usage side, despite there being only 1 client side socket, there are 3 classes for using it:
+RTDEControlInterface, RTDEReceiveInterface and RTDEIOInterface.
+They all share the same socket, and this is just for better code design
+(separation of concerns, obvious from the name).
+
+\begin{table}[h!]
+		\centering
+		\label{table-smc-ur-rtde-interface}
+		\begin{tabular}{p{4.5cm} | p{8cm}}
+				\textbf{SMC function} & \textbf{How it's achieved with ur\_rtde} \\
+				\hline
+				connectToRobot() & \begin{itemize}
+						\item RTDEControlInterface(args.robot\_ip)
+						\item RTDEReceiveInterface(args.robot\_ip)
+						\item RTDEIOInterface(args.robot\_ip)
+				\end{itemize} \\
+				\hline
+\_updateQ() & rtde\_receive.getActualQ() \\
+				\hline
+\_updateV() & rtde\_receive.getActualQd() \\ 
+				\hline
+sendVelocityCommandToReal() & rtde\_control.speedJ(v, args.acceleration, 1/args.ctrl\_freq)
+\newline
+\textbf{IMPORTANT:} acceleration is a scalar, same for all joints (effectively).
+dt is for how long the robot will try to achieve the prescribe velocity v,
+i.e. it's the hangup time for the command. 
+We set it to be the specified control frequency (500Hz max).\\
+				\hline
+\_updateWrench() & rtde\_receive.getActualTCPForce(). 
+\newline
+\textbf{IMPORTANT:} This returns the unfiltered wrench in the \textbf{base frame} of 
+the robot. We immediately map it to the end-effector frame $ T_{ w }^{ e }  $.
+Upon the start of every script, we also first collect samples to collect the bias,
+and offset it. Despite calling rtde\_control.zeroFtSensor(), there can be bias.
+And it builds up quickly. After a few minutes it should be recalibrated
+if running a continuous experiment.
+The sensor is noisy, our baseline filtering gets reliable wrench readings
+if the norm of the wrench is \textbf{at least 2N}.\\
+setInitialPose() & rtde\_receive.getActualQ() if connected to the robot
+and with --no-real (used to match sim to reality before experiment)\\
+				\hline
+stopRobot() & first send zeros velocity, then go to freedrive. 
+Without going to freedrive, the robot keeps trying to go at zero velocity,
+but in actuality keeps moving slowly (collides with something in 5-10min)\\
+				\hline
+connectToGripper() & gripper dependent, look below if connected with flange to arm's wrist.\\
+				\hline
+setFreedrive() & rtde\_control.freedriveMode() \\
+				\hline
+unSetFreedrive() & rtde\_control.endFreedriveMode() \\
+				\hline
+\_sendTorqueCommand() & is available on UR robots now, but there are
+no torque-level controllers in SMC. This is future work.
+		\end{tabular}
+		\caption{SMC-ur\_rtde interface.}
+\end{table}
+
+\subsubsection{An opinionated remark on alternative interfaces}
+This remark is a ``heads up'' for those who for whatever reason
+have to read UR official documentation.
+
+UR has developed its own programming language for controlling
+their robots, called URscript. It is simply a butchered version of Python.
+As in, it is literally Python, but heavily constricted (can't install Python packages to it for example),
+with premade functions to control the robot.
+There are 2 additional sockets to control the robot with remotely.
+One accepts entire URscript programs and then executes them.
+The other waits for one URscript command at a time, and executes it on completion.
+
+Both of these options are completely useless for the purpose of experimental control engineering
+because URscript is not a real programming language.
+They are very useful for technicians to safely used the robot with the functionality
+developed by UR. This is not SMC's target audience. The target audience are people
+who want to test novel controllers.
+Avoid non-RTDE interfaces completely. Use available SMC's compliance control, 
+or even better, write your own (it will cost you less time and get a better result
+than reverse-engineering a URscript program you found.)
+
+
+\subsubsection{Grippers supported in SMC}
+\begin{itemize}
+		\item some Robotiq grippers (Hand-E, 2FG), via flange
+		\item OnRobot  TwoFg (external cabling)
+		\item (soon) Schunk EGK-40 via flange
+\end{itemize}
+
+\subsubsection{Notes on integrating grippers connected via the flange}
+There are 2 distinct, mutually exclusive options:
+\begin{enumerate}
+		\item communicate with the gripper directly, with the gripper protocol, over the TCP socket
+exposed by the robot
+		\item find a URcap for your gripper, and find Python code to interface
+			with whatever the URcap expects
+\end{enumerate}
+\paragraph{Direct communication with the gripper}
+The robot opens a TCP socket on port 63352 for direct communication with the gripper.
+My understanding is that whatever bytes you send to that socket
+will be exactly relayed to the gripper.
+There is nothing special about the client side socket you construct.
+Typical industrial gripper are very simple from a control standpoint,
+and so is communication with them. Namely, the state of the gripper
+is likely less than 20 bytes in size. The commands you give it are a few bytes
+in length (ex. 1 bytes for target position, 1 for motion velocity, and 1 for grasping force).
+My recommendation is to read the gripper's documentation, which has to include
+which bytes mean what, and implement the communication protocol directly,
+with raw bytes being sent and read. It is very likely you will need to read the gripper's
+documentation if you just bought it (preferably you read it \textit{before} you bought it).
+(Limited) Experience shows that this is the most stable, set it and forget it way to control the gripper.
+
+\paragraph{URcap solution}
+If whoever provides the URcap also provides Python code to interact with it,
+this is the best possible solution.
+However, chances are that there is no Python code. Be wary if you are determined
+to find a ``simple'' workaround. This is a dark path to tread on.
+I have seen grippers which provide web interfaces, and people writing Python code
+to trigger Javascript to move the GUI sliders.
+I suggest toughing it out and writing the raw bytes yourself, that way there is 
+at least a clear end in sight. But there is no winning here, only tough labour, or
+implementing hacks you wish you can hide and forget, or even worse --- external cabling.
+

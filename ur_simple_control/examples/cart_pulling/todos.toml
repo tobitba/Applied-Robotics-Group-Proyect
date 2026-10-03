@@ -1,0 +1,1198 @@
+[project_plan]
+name = "wara challenge paper"
+description = """
+just continuing with the wara challenge task 1 as if it never ended. it's automated cart pulling by a mobile robot. all deliverables should be done on both heron and yumi for the purposes of comparison and all the other benefits. 
+""" 
+priority = 1
+deadline = 2025-02-28
+dependencies = ["..."]
+engineering_purpose = """
+solving a real problem of having a mobile manipulator pushing and pulling a cart from point A to B  with SOTA solutions for every element of the stack 
+"""
+personal_purpose = """demostrating i can solve a real robotics problem"""
+hours_required = 0
+is_done = false
+
+[[project_plan.action_items]]
+name = "dealing with the real robots and their interfaces" 
+description = """
+obvious task. includes not only dealing with the interface but also the mapping between smc and ros2
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = []
+purpose = """being able moving heron and yumi with code"""
+hours_required = 0
+assignee = "Marko"
+
+[[project_plan.action_items.action_items]]
+name = "moving robots via their ROS interfaces" 
+description = """
+heron's mobile base uses something/vel_cmd. there has to be a verification that this topic actually works. mobile yumi uses abb_whole_body_driver. this works in simulation, but not on the real robot. there are multiple possible reasons for this. solving this task means:
+1) understanding how whole_body_driver works
+2) enumerating its possible breaking points
+3) lining up alternatives and testing them in sim (most likely just individual components of abb_whole_body_driver)
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = true
+dependencies = []
+purpose = """being able moving heron and yumi with code"""
+hours_required = 0
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "verifying vel_cmd and rest of heron interface"
+description = """
+make sure that we can control heron as expected.  this boils down to verifying we can simultaneously move the base, the arm, and the gripper. the arm and the gripper should pose no problems as they should be decoupled from the base. moving the base means using something/vel_cmd to move the base. 
+
+actual TODO: make it go back and forth while rotating the last joint and also open and close the gripper repeatedly. 
+
+UPDATE: pray to god it works, seba says he saw it happen
+"""
+priority = 1
+deadline = ["first thing to do on heron", 2025-01-20]
+is_done = true
+dependencies = []
+purpose = """verify heron interface to be able to rest assuredly"""
+hours_required = 2
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "exploring & understanding whole-body-driver" 
+description = """
+the abb_myumi_whole_body_driver does not work on the real robot. this needs to be debugged, which in turn requires knowing what's going on. in particular, looking at the ins and outs of the driver, focusing on what needs to be (or musn't be) running for it to do actually move the robot. 
+the outcome is: 
+1) produce a tutorial-type document for the startup process, including a checklist if something breaks during operation
+2) produce a list of possible failures of the driver
+3) run, test and document the components of the whole body driver, ex. egm for one arm etc
+
+UPDATE: turned into priority 3 because there is no time for this and we just have to pray it works
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = []
+purpose = """being able to move mobile yumi with code"""
+hours_required = 12
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "finding alternatives to whole body driver" 
+description = """
+the whole body driver might be doomed, so having a different way to control the robot is a good idea. this means controlling the arms and the base individually. the base is controllable through the nav2 stack as well. the arms are controllable through RAPID, but that's unusable. hopefully one can talk to egm of each arm directly. the point of this action item is to investigate that. 
+
+UPDATE: turned into priority 3 because there is no time for this and we just have to pray it works
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = ["exploring & understanding whole-body-driver"]
+purpose = """being able to move mobile yumi with something other than whole body driver"""
+hours_required = 7
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "verifying operational frequency" 
+description = """
+once both heron and myumi can be controlled, the control frequency needs to be determined. because both things run on ros2, and due to many processes running in parallel, it is difficult to say how often the commands are issued,  and also whether there are consistent delays between them. this quantities should be determined if possible. 
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = ["moving robots via their ROS interfaces"]
+purpose = """making sure we are getting the best control performance in the sense
+of frequency, also ensures the approach isn't fundamentally bad/incorrect (ROS2 qos
+profiles etc)"""
+hours_required = 4
+assignee = "Marko"
+
+[[project_plan.action_items.action_items]]
+name = "fast localization"
+description = """
+amcl from ros2 nav2 stack seems very good, but gives updates at 2Hz, which causes the robot to teleport internaly.  for this reason, odometry should be used in-between updates, or even better, a kalman filter balancing odometry and  amcl updates should be used. some amount of teleporting will certainly occur, but  this can't be in meters for hopefully obvious reasons. 
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-21]
+is_done = false
+dependencies = []
+purpose = """localization is required for correctness of any kind of mobile robot movement,
+especially for whole-body control"""
+hours_required = 0
+assignee = "Seba"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "understanding and testing odometry" 
+description = """
+ros2 nav2 odometry supposedly already incorporates information from position encoders on the wheel, imu data, lidar readings etc., but it of course does not use a map to localize. understanding odometry implies being able to answer the following: 
+1) how precise it is and for how long is it realiable
+2) how does 1) change depending on the available sensors
+3) what's configurable and how much of that is useful
+4) obviously this needs to be tested on hardware as well
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-20]
+is_done = false
+dependencies = []
+purpose = """we need some kind of odometry for fast localization, and it's better to use the provided
+thing over wasting time hacking a sub-par solution from various topics"""
+hours_required = 6
+assignee = "Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "testing whether raw odometry + amcl is enough" 
+description = """
+if we can use odometry until we get an amcl reading, then just put in  the amcl number over whatever odometry was, and then reset odometry and keep using that until the next update, great, we don't need to use a kalman filter. this todo is to actually check. 
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-20]
+is_done = false
+dependencies = ["understanding and testing odometry"]
+purpose = """trying to avoid the work of using a kalman filter"""
+hours_required = 3
+assignee = "Seba"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "configuring a kalman filter from robot_localization" 
+description = """
+in case raw odometry + amcl is not enough, a kalman filter has to be used
+to localize. amcl provides slow correct updates, odometry provides quick soon unreable updates. exactly such a kf is implemented in the ros2 robot_localization package, and is suggested by the nav2 stack. to actually use it, some config files need to be filled, and some sensor/overall measurement covariances need to be pulled out of a hat or estimated via measurements. 
+
+UPDATE: prior 2 -> 3, no time, can't be priority 2 anymore, other things are more important
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-21]
+is_done = false
+dependencies = ["testing whether raw odometry + amcl is enough"]
+purpose = """configuring a kf if necessary"""
+hours_required = 6
+assignee = "Seba"
+
+[[project_plan.action_items.action_items]]
+name = "ros2 whatever map into path planning map"
+description = """
+we get a bitmap of the map from some ros2 topic. this needs to be starified for our path planning to work. 
+
+the todos go as follows:
+1) figure out how to get a matrix occupancy grid or whatever format from ros2. 
+2) know which format the path planner wants. it's something in shapely, which is then mapped into star shapes. the outcome here is knowing which shapes are already supported and running with that. just rectangles and ellipses should be good enough
+3) create a fixed transformation for the static map of the lab into star shapes. ideally save that and keep it cached.
+4) (optional, but highly preferable) take what isn't static in the occupancy map, convex hull it, hit a rectangle/ellipse on that
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-19]
+is_done = false
+dependencies = []
+purpose = """localization is required for correctness of any kind of mobile robot movement,
+especially for whole-body control"""
+hours_required = 0
+assignee = "Seba"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "getting map from ros2"
+description = """
+afaik, the map is build by SLAM from the Nav2 stack. this map is build using all possible sensing shoved into SLAM. it is static and the occupancy is colored black in rviz.
+
+on the same map there is an overlay of the laser scan, projected down onto the map. these points are colored red. these things should be obtainable in the same format as the static map.
+NOTE: try getting the second part here, but if it's something complicated fuck it
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-18]
+is_done = false
+dependencies = []
+purpose = """no map no planning, need to get it from nav2"""
+hours_required = 4
+assignee = "Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "understanding starifiable obstacles"
+description = """
+need to know what the ros2 map can be made into
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-18]
+is_done = false
+dependencies = []
+purpose = """no map no planning, need to get it from nav2"""
+hours_required = 4
+assignee = "Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "starify static map"
+description = """
+need to know what the ros2 map can be made into
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-19]
+is_done = false
+dependencies = []
+purpose = """no map no planning, need to get it from nav2"""
+hours_required = 3
+assignee = "Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "starify dynamic obstacles"
+description = """
+need to know what the ros2 map can be made into
+"""
+priority = 2
+deadline = ["before going to vasteros", 2025-02-19]
+is_done = false
+dependencies = []
+purpose = """no map no planning, need to get it from nav2"""
+hours_required = 3
+assignee = "Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "continuously starify dynamic obstacles"
+description = """
+need to know what the ros2 map can be made into
+"""
+priority = 2
+deadline = ["before going to vasteros", 2025-02-19]
+is_done = false
+dependencies = []
+purpose = """no map no planning, need to get it from nav2"""
+hours_required = 5
+assignee = "Seba"
+
+[[project_plan.action_items]]
+name = "computer vision stuff"
+description = """
+remaining tasks in the the computer vision stack:
+1) debugging pose estimation from filtered depth pixels
+2) finishing integration with SMC
+3) maybe cross-validating with yolo
+4) simple color filtering for the bar during pushing/pulling?
+
+UPDATE: prior 2 -> 3, no time, can't be priority 2 anymore, other things are more important. we can do this blind and say how to do vision
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = []
+purpose = """required to solve the real problem of a robot pulling a real cart - 
+it has to see it. also easily usable in other projects if done right codewise."""
+hours_required = 0
+assignee = "X"
+
+
+[[project_plan.action_items.action_items]]
+name = "generate dataset" 
+description = """
+tape phone to laptop. start dataset generating script. go around the cart and create the dataset.
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = []
+purpose = """needed for yolo cross-validation"""
+hours_required = 2
+assignee = "X"
+
+
+[[project_plan.action_items.action_items]]
+name = "train yolo to detect cart" 
+description = """
+install yolo (v11 ideally) on computer with already install cuda opencv etc. put basic things into yolo config files, run training, validate it works with simplest possible 'show boxes on live camera input' script. 
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = []
+purpose = """required for cross-validation with yolo"""
+hours_required = 4
+assignee = "X"
+
+[[project_plan.action_items.action_items]]
+name = "fix pose estimation from point cloud"
+description = """
+there's already a segmentation, but ransac/whatever needs to be fixed so that pose estimates are acquired. in case of low precision, there should also be some averaging over more than 1 estimate (and not necessarily from the same angle). also, there might be a need to filter or discard spurious results. 
+
+UPDATE: prior 1 -> 3, no time, can't be priority 2 anymore, other things are more important. we can do this blind and say how to do vision
+"""
+priority = 3
+deadline = ["before going to vasteros", 2025-02-10]
+is_done = false
+dependencies = []
+purpose = """last component of core vision stack, required for anything vision"""
+hours_required = 10
+assignee = "X"
+
+[[project_plan.action_items.action_items]]
+name = "finding a local server to run grounding sam on"
+description = """
+see where to run grounding sam locally. ideally this should be a more permanent solution so that it can be used in the future. probably best solved by asking around. 
+"""
+priority = 3
+is_done = false
+deadline = 2025-02-05
+dependencies = ["fix pose estimation from point cloud"]
+purpose = """
+grounding sam is a very good off-the-shelf solution for  computer vision tasks. this should be available literally at any point in time to enable quick experiments 
+"""
+hours_required = 3
+assignee = "X"
+
+[[project_plan.action_items]]
+name = "write control code" 
+description = """
+everything from doing the math to creating experiments in simulation
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-16
+dependencies = []
+purpose = """
+core of scientific contribution
+"""
+hours_required = 0
+assignee = "Marko"
+
+[[project_plan.action_items.action_items]]
+name = "refactor optimal control code" 
+description = """
+it's literally unreadable and changeable. most of it is straight copy-pasting too. while some refactoring is kinda optional, this step most certainly is not.
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-16
+dependencies = []
+purpose = """
+making optimal control fixes possible
+"""
+hours_required = 0
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "abstract croco optimal control class" 
+description = """
+abstract class to store basic things like the state definition, actuation model etc
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = []
+purpose = """
+at least 100 less lines of copy-pasted code
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "refactor p2p ocp"
+description = """
+refactor p2p ocp
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["abstract croco optimal control class"]
+purpose = """
+making optimal control fixes possible
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "refactor end-effector path following"
+description = """
+refactor end-effector path following
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["refactor p2p ocp"]
+purpose = """
+making optimal control fixes possible
+"""
+hours_required = 3
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "write end-effector and base path following"
+description = """
+two versions:
+1) follow predetermined sensible path (same way as for just the end-effector) - this makes sure that ocp by itself is fine
+2) do path-following from planner. there the key is how do you initialize the past dict so that it makes sense you also need to put the arms in a good spot relative to the end-effector. this likely requires a new point-to-point function. or solve 2 ocps one after the other - first for base position, then for the arm - doesn't matter
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["refactor p2p ocp"]
+purpose = """
+making optimal control fixes possible
+"""
+hours_required = 7
+
+[[project_plan.action_items.action_items]]
+name = "debug control"
+description = """
+control stack is broken. could be the control itself, or trajectories' construction from obtained path.
+
+or there is something fundamentally fucked with changing the plan on the fly, idk. could be that you need to put in some smoothing into it. can't know unless you write tools to test this shit.
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["refactor optimal control code"]
+purpose = """
+getting any base and ee path tracking to work
+"""
+hours_required = 0
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "some ways to try to save mpc"
+description = """
+2. make proper path-tracking cost in python, that's shouldn't be too much of a hassle
+   2.1. do it with numdiff first
+   2.2. put in the analytic derivative
+3. put in progressively higher goal tracking costs.
+4. dynamically change the costs - if the end-effector is too fucked, track just the first point while fixing the base, whatever. 
+5. re-initialize previous path if the error is too big.
+"""
+priority = 3
+is_done = false 
+deadline = 2025-02-14
+dependencies = []
+purpose = """
+i mean it wont work but you can try
+"""
+hours_required = 0
+assignee = "Marko"
+
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "manage path saving better"
+description = """
+right now we use a deque to store the path. but this breaks the system if the robot stays in place or moves slowly or not at all - that point eventually fills up the whole queue, the end-effector goes there and everything consequently turns to shit. 
+
+point is some micromanagement of the saved path is necessary. having a deque is a good strategy, but at the very least you have to be able to select whether to add in a new pint or not.
+
+ideally you have some math to thin out the path points or whatever. you construct the trajectory on top of the plan at every time-step anyway.
+
+one way to do this would be to inherit from ControlLoopManager 
+and then overwrite whatever necessary to make path management overall happen there.
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-14
+dependencies = []
+purpose = """
+getting any base and ee path tracking to work
+"""
+hours_required = 3
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "debug past path initialization "
+description = """
+it's not what it should be - either my math is wrong/there's a bug, and my logic is right, or my logic isn't right, or both
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["dual arm feature", "refactor end-effector path following"]
+purpose = """
+getting any base and ee path tracking to work
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "ensure either reference doesn't change rapidly"
+description = """
+getting a suddent change in the path might lead to instability. especially since we are taking dynamics into account.
+
+first of all, a collective smoothness of the path has to be investigated. by this i mean concatenative all received paths, and then checking for norms of its derivative, or similar.
+
+this can be achieved with:
+1) a low-pass filter in-between received paths, same way as for wrench filtering. 
+2) increasing regularization costs in the mpc. IN FACT, you can even try changing the costs on the fly based on how suddenly the path reference shifted.
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-14
+dependencies = ["dual arm feature", "refactor end-effector path following"]
+purpose = """
+getting any base and ee path tracking to work
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "debug base and ee tracking"
+description = """
+the thing itself might be wrong. you have to test each sub-component to be sure.
+get static data from a non-planner. run forward without running ocp (literally vixed velocity).
+do just path reconstruction. it should be a live controlloop.p_base should go around in  a circle or something. just put trajectory reconstruction there. then go in something that's not a circle. point is do it with just move a mobile base and draw the constructed SE3 path as well.
+PLOT EVERY SINGLE STEP! make the plan providing be on a single processor.
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["dual arm feature", "refactor end-effector path following"]
+purpose = """
+solving the same problem but with a single arm
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "alternative if full-body mpc is not the right tool for the job"
+description = """
+control just the base with mpc for base tracking.
+make the handlebar be defined in a pose relative to the body. run clik on arms to get to a point made up by the path (still need to find corresponding path point) with the orientation being constructed with normal/tangent of the past path. then run p2p on that single goal. update the goal at every time step. an even better idea if getting whole trajectory works, just run trajectory following.
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["dual arm feature", "refactor end-effector path following"]
+purpose = """
+half of paper problem
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "dual arm p2p and path following"
+description = """
+refactor end-effector path following
+
+1. p2p dual arm only mpc - DONE
+2. p2p dual arm and base - DONE
+3. fixed path following dual arm and base
+4. path following no planner just dual arm reference on mobile yumi
+5. path following from planner just dual arm on mobile yumi
+6. path following from planner dual arm and base - DONE
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-14
+dependencies = ["dual arm feature", "refactor end-effector path following"]
+purpose = """
+half of paper problem
+"""
+hours_required = 10
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "cart-pulling (ee and base path following)"
+description = """
+refactor end-effector path following
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["dual arm feature", "whole-body feature", "dual arm p2p and path following"]
+purpose = """
+half of paper problem
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "construct map showcasing my prefered setting (make the labyrinth!!!!!!!!)"
+description = """
+it's the experimtn
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-14
+dependencies = []
+purpose = """
+
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "fixing behavior tree"
+description = """
+ideally the behavior tree todo in smc is done before this, but it's not necessary. what is necessary is to debug the logic errors in the state-selecting conditions, primarily the one deciding when do you grasp handlebar vs push/pull. this requires computer vision to be done because the amount of errors that gives is what determines how this should look. 
+possibly more states need to be added, like docking.
+
+the description of the desired behavior tree for the cart pulling system is given below:
+
+make a function that implements the get-cart-to-station behaviour tree.
+   this is a control loop that select what control loop to run based on some 
+   logic flags (smaller number = higher priority). simple select loop of the highest priority.
+   for every flag there is a process (node + topic) which determines whether to set it or unset it.
+	- PRIORITY 1: if obstacle flag, then run stopLoop (which is just make all velocities 0). flag on 
+                  only if there are people around.
+	- PRIORITY 2: if handle_bar flag, run loop to grasp the handle bar. if handle bar is grasped
+                  (vishnu's vision sets this flag) then the flag is unset. if not grasped (gripper
+                   status (maybe) + vision decides) then set the flag.
+	- PRIORITY 3: pull cart along prescribed path - runs MPC path-following loop. flag on until goal is reached
+	- PRIORITY 4: dock cart. flag on until cart is docked. i guess vision should check that but idk honestly.
+                  if this flag is set down, the program is down - shut down.
+	run this on the real thing
+
+UPDATE: prior 1 -> 3, no time, can't be priority 2 anymore, other things are more important. no properly working behaviour tree is needed if we don't use vision.
+"""
+priority = 3
+is_done = false
+deadline = 2025-02-01
+dependencies = []
+purpose = """having functional robotic system, not such 1 controller hopefully working as intended"""
+hours_required = 8
+assignee = "Marko"
+
+[[project_plan.action_items.action_items]]
+name = "improving existing solutions" 
+description = """
+some functions were written just to be written as soon as possible, and are quite inefficient. this primarily pertains to using o(n) algorithms instead of o(1) algorithms just recomputing is easier than saving and resuing past compute. 
+
+since we're doing mpc, and we know it performs much better with a longer time horizon and if the solver has time to converge, we should try to squeeze as much performance out of it as possible.
+"""
+priority = 2
+is_done = false
+deadline = 2025-02-14
+dependencies = ["smc refactor"]
+purpose = """
+"""
+hours_required = 0
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "compile pin+croco stack to allow parallel execution"
+description = """
+try seeing if there's some parameter somewhere that could be set to parallelise.
+
+a trillion percent it's runnable on multiple cores and it's just not happening now for some reason.
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-14
+dependencies = []
+purpose = """
+solving faster means longer time horizon and higher control frequency, both of which increase performance substantially
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "tune controller parameters"
+description = """
+assign different scalars to different costs, see what that does.
+would also be interesting do change them depending on for example the ratios between different errors - the cost with the highest error is the highest, thereby forcing a quick recovery idk. another idea is changing the ratio between tracking cost and regularization depending on the tracking error norm - the closer you are the lower the regularization and higher the tracking cost. 
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-14
+dependencies = []
+purpose = """
+getting much better performance just by turning knobs (also tuning is pretty much mandatory)
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "rewrite ee construction from past path to be more efficient"
+description = """
+a large past window is needed to store a path long enough to find the point with prefered distance from base. by large i mean large enough that you can't copy-contruct a new np.ndarray from it at every single iteration. 
+
+hence, cache things like path arclength, do math directly on the deque.
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-14
+dependencies = ["refactor p2p ocp"]
+purpose = """
+making optimal control fixes possible
+"""
+hours_required = 3
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "time scaling on path as decision variable in mpc"
+description = """
+we should not pre-time the path passed to the mpc - it should be a collection of points and that's that. we then of course do need a time scaling on the path. from a math standpoint, it seems the best to have the time scaling of the path  as the decision variable. this way, we don't formulate the objective function as distance from knot point to a single pre-selected point on the path,  but we really just stay on it as much as possible while traversing it as quickly as possible. not to say that the predefined points are completely unreasonable, but this ios clearly better.  
+
+the problem is that then a new objective funtion and it's derivatives need to be defined in crocoddyl. this will take a while to write beucase it's cpp  and i haven't done it in a while.  the potential upside is that if the derivative is finite-differenced, then getting this done is much easier. it should be investigated whether support for arbitrary functions through finite differencing is a thing in crocoddyl. in any event, this can't be a priority 1 task due to the benefit-time-cost ratio. 
+
+UPDATE: prior 2 -> 3, no time, can't be priority 2 anymore, other things are more important. this takes too much time for what it's worth.
+"""
+priority = 3
+is_done = false
+deadline = 2025-02-01
+dependencies = ["tools for trajectory generation in smc"]
+purpose = """having the correct ocp formulation for the whole-body mpc controller for pushing and pulling"""
+hours_required = 20
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "additional possible modifications of the ocp"
+description = """
+there is a number of possibly interesting ocp formulations, collected here in case the final product is not good enough: 
+1) a constraint on the ee poses so that they are in the plane defined by the handlebar 
+"""
+priority = 3
+is_done = false
+deadline = 2025-02-01
+dependencies = []
+purpose = """designing a better ocp, testing agaist different options"""
+hours_required = 12
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items]]
+name = "tools for trajectory generation in smc" 
+description = """
+turning a path into a trajectory is bugged. making goals for 2 arms from a single goal is annoying and takes too long. designing SE3 trajectories is cumbersome, and it shouldn't be because  it's trivial to do visually or with your hand in the air.  there is no reason it should be more than 5x more difficult to input a trajectory on a computer then it is to do it by hand. the same goes for any kind of SE3 targets.  
+
+the todo is to build a tool to do this. the input does not need to be via GUI (the visualization needs to exist of course), but it needs to be fast and interactive in real-time. the cost of writing this tool is much smaller than all future cost of trajectory or goal design, so it should be done asap. 
+UPDATE: prior 1 -> 3, no time, for project purposes this is resolvable by properly using the dual arm absolute frame and thinking for 5 minutes
+UPDATE2: it is prio 1 because some form of this is required (obviously it's not the nice one, but you'll do some hack to not tap in the dark)
+
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["smc refactor"]
+purpose = """
+this tool will solve issues with weird trajectories or wasting 20min to write the correct SE3 transformation, which simply persist otherwise and are super annoying to deal with -> it's much better to do geometry on screen than in your head if  you need specific numbers on that geometry. 
+"""
+hours_required = 0
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "just desing the trajectories for the problem"
+description = """
+debug existing trajectory generation
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["smc refactor"]
+purpose = """creating the base of interactive goal/transform/trajectory design"""
+hours_required = 8
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "extend logging to include saving the whole of save-past-dict"
+description = """
+the easiest possible way to see what the fuck goes wrong with paths is to save the entire state of the system, and then reproduce it via logging. you already have 90% of this done with log comparison and the saving of the logs. you can just log the entire save-past-window, and not plot it (because it's a matrix at every timestep). save the calculated path as well.
+
+modifying other code to be able to do this live will polute the control code which HAST TO stay as simple as straight-forward as possible. 
+you don't want to modify control frequency, or go backwards or whatever the fuck in ControlLoopManager!!!!!!!!!!!!!!!!!! this HAS TO be FORBIDDEN on the code level in control.
+
+but you can do whatever you want when running logs - those don't touch any control function.
+
+UPDATE: not necessary, just drop into an ipython shell and have a parameter deciding whether you want to be in it or not.
+this has to be done on a base by case basis though, and it should be better documented
+"""
+priority = 1
+is_done = true
+deadline = 2025-02-14
+dependencies = ["smc refactor"]
+purpose = """creating the base of interactive goal/transform/trajectory design"""
+hours_required = 8
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "use drawing feature from drawing demo to draw a path to be followed"
+description = """
+use drawing feature from drawing demo to draw a path to be followed is very likely the easiest possible way to generate a path that we want to follow. certainly easier than constructing the map. 
+
+you can go the extra mile, and make the drawn line a series of rectangles or something and make a real map out of it. but for this purpose you could also lean 100% into albin's code.
+"""
+priority = 2
+is_done = false
+deadline = 2025-02-14
+dependencies = []
+purpose = """make test design for just path planning take 10 seconds"""
+hours_required = 10
+assignee = "Marko"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "interactive meshcat for setting a transformation"
+description = """
+there is a robot/frame/some object in meshcat.  there is a python program waiting for a user command input (keyboard input is fine), so that you don't need to restart the program every time (slow as shit). the thing on screen moves, executing the user's input, ex. left arrow is pressed and the frame goes 0.01m in positive y direction. or you just type in a new value for y, or both. this is probably best done if the cmd-viz is  integrated with a notebook/ipython shell/kernel. there also needs to be a button to save (print in correct code format) the designed transform, parameters of the trajectory, whatever it is so that it can be immediately integrated. if the robot's or whatever else state can be stopped while running some control loop, and then switched into the interactive session, that would be the best possible solution (again, having this in some kind of ipython kernel is probably the way to go). 
+
+UPDATE: prior 1 -> 3, no time, can't be priority 2 anymore, other things are more important. for project purposes this is resolvable by properly using the dual arm absolute frame
+
+UPDATE2: just work in a jupyter notebook or get dropped into an ipython shell. there is no need for anything else. document this better tho
+"""
+priority = 3
+is_done = true
+deadline = 2025-02-14
+dependencies = ["smc refactor"]
+purpose = """creating the base of interactive goal/transform/trajectory design"""
+hours_required = 10
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "reset function"
+description = """
+reset function is needed to save and reload relevant variables in robotmanager and in visualizer. otherwise you can't go back and try a different transform or parameter. 
+UPDATE: prior 1 -> 3, no time, can't be priority 2 anymore, other things are more important.
+
+UPDATE: you don't want to pollute the control code with this sorta shennanigans. instead, you want to do this on logs. so do it on logs
+"""
+priority = 3
+is_done = false
+deadline = 2025-02-14
+dependencies = ["interactive meshcat for setting a transformation"]
+purpose = """making interaction much more usable"""
+hours_required = 2
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "workspace visualization"
+description = """
+putting workspace objects in makes things easier to verify. this should be goal poses or objects (cart in this case), the table and so on. it should be as minimal as possible. the map visualization should be expanded to render the nav2 bitmap of the map. the abstract things like paths should also be visualized for easier understanding of the control algorithm. 
+
+NOTE: probably a good idea for a better paper picture
+"""
+priority = 2
+is_done = false
+deadline = 2025-02-14
+dependencies = ["interactive meshcat for setting a transformation"]
+purpose = """making visual verification more powerful and easier"""
+hours_required = 4
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items.action_items]]
+name = "path generation parameters interactive tuning"
+description = """
+a similar type of interface should be developed for path generation parameters, and some of them should be visualized. this primarily concerns the length of the planned path and the safety radius around each point of the path. 
+
+UPDATE: prior 2 -> 3, no time, can't be priority 2 anymore, other things are more important. tuning is a luxury we don't need because we are comparing against a brain-dead method of not moving the arms at all
+"""
+priority = 3
+is_done = false
+deadline = 2025-02-01
+dependencies = ["interactive meshcat for setting a transformation"]
+purpose = """making tuning and understanding of path planning much easier"""
+hours_required = 6
+assignee = "Marko"
+
+
+
+[[project_plan.action_items]]
+name = "creating tests for whole system performance" 
+description = """
+there are different ways to manipulate a cart: pushing or pulling. using a single or a dual armed robot. having a differential drive or an omnidirectional mobile base. going fast as possible is good, but does it make the system less robust? how does the mass of the cart impact performance? which grasps are more reliable, which are more taxing on the robot's hardware? these and more perfomance metrics should be though of, and test to measure them need to be devised and carried out. 
+
+UPDATE: KEY COMPARISSONS:
+1) arms locked and rigid vs we move arms --> show locked arms failing - navigating narrow passage should be enough
+
+PREFERABLE, BUT NOT NECESSARY
+- heavy vs not heavy cart
+- errors in estimation of weight of cart
+
+NOT NECESSARY:
+- one vs two arms
+"""
+priority = 1
+is_done = false
+deadline = 2025-02-17
+dependencies = ["moving robots via their ROS interfaces", "localization", 
+                "computer vision stuff", "smc refactor", 
+                "tools for trajectory generation in smc"]
+purpose = """
+scientific perfomance measurement is required for a scientific publication
+"""
+hours_required = 0
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items]]
+name = "devising perfomance metrics" 
+description = """
+we want to measure things like time needed to perform the cart-pulling operation, grasp reliability etc. this todo means creating numerical measurements for these things, AND writing code to calculate them from logs. these metrics are then to be measured on all the tests 
+
+UPDATE: focus on what differentiates locked arms from moving arms
+"""
+priority = 1
+deadline = ["before going to vasteros", 2025-02-17]
+is_done = false
+# NOTE: sub-task dependencies should have their parent's dependencies inherited
+dependencies = []
+purpose = """knowing what to measure and why"""
+hours_required = 12
+assignee = "all"
+
+
+[[project_plan.action_items.action_items]]
+name = "performing experiments"
+description = """
+once everything is ready, we can go to vasteros and actually perform the experiments. this should ideally be done in 3 days. 
+the tests are:
+- 1 arm vs 2 arms
+- differential drive vs omnidirection in mobile base
+- kinematic vs dynamic level
+- heavy vs light load
+- different grasps
+- ...
+
+UPDATE: ONLY RIGIDLY LOCKED VS USABLE ARMS ARE IMPORTANT. SEPARATE THIS AND THE REST, MAKE ELSE PRIOR 3 AKA NOT HAPPENING
+"""
+priority = 1
+deadline = ["in vasteros", 2025-02-24]
+is_done = false
+# NOTE: sub-task dependencies should have their parent's dependencies inherited
+dependencies = []
+purpose = """getting data"""
+hours_required = 18
+assignee = "Marko"
+
+[[project_plan.action_items]]
+name = "write research diary" 
+description = """
+project todos are good for knowing what needs to be done, replanning based on the current status and so on. but not for capturing the research process, formulating the questions, answering them, and doing so mathematically.
+
+this text is also not the paper text. the paper text is a condensed subsection of the research notes, plus all the flowers around it. 
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = true
+dependencies = []
+purpose = """this is the product of the project"""
+hours_required = 6
+assignee = "Marko"
+
+
+[[project_plan.action_items]]
+name = "writing the paper" 
+description = """
+the product of the project is the paper. the non-experiment and discussion part should be written before the experiments are done, as the code is  being written. writting is essential to knowing what you are doing and why. then, with all the experiments done, the experiment and discussion sections are to be written. finally, the paper needs to be polished. 
+
+ASSIGNED TO SEBA
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """this is the product of the project"""
+hours_required = 0
+assignee = "Marko, Seba"
+
+[[project_plan.action_items.action_items]]
+name = "setting colors to authors" 
+description = """
+in text who wrote what is colored.
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = true
+dependencies = []
+purpose = """this is the product of the project"""
+hours_required = 1
+assignee = "Zheng"
+
+
+[[project_plan.action_items.action_items]]
+name = "pretty picture for modelling" 
+description = """
+schema of robot and cart with path, image on overleaf
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """nice image explaining modelling"""
+hours_required = 4
+assignee = "Zheng"
+
+
+[[project_plan.action_items.action_items]]
+name = "nice plot showing our method can clear narrow corridors" 
+description = """
+the main thing we can do by moving the arms, and that means we can navigate narrower more cluttered maps.
+so we have a figure showing we can clear a corner, which a rigid arm solution can't.
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """nice image explaining modelling"""
+hours_required = 4
+assignee = "Zheng"
+
+
+[[project_plan.action_items.action_items]]
+name = "pulling is better than pushing" 
+description = """
+you can see the obstacles in front of you. if you're pushing you need more sensors. pulling is better. some sentences on this
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = true
+dependencies = []
+purpose = """nice image explaining modelling"""
+hours_required = 4
+assignee = "Zheng"
+
+[[project_plan.action_items.action_items]]
+name = "making skeleton of paper, assigning people what to write" 
+description = """
+you have to have a skeleton of the paper ready. have an idea of which figures to put where. know roughly how much text a particular topic needs. fill stuff with lore impsum or whatever to make it easier to see.
+
+NOTE: this has to be done with seba. then we assign to others. 
+NOTE NOTE NOTE: the result of this todo is a lot of smaller todos in this big action item!!!!!!
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = true
+dependencies = []
+purpose = """part of paper"""
+hours_required = 3
+assignee = "all"
+
+
+#[[project_plan.action_items.action_items]]
+#name = "writing introdution, related work, methodology" 
+#description = """
+#we already know what the technology stack is and what we are trying to accomplish. hence it can and should be written down now. this part will focus and guide the code development, and should be  done in parallel to it. 
+#
+#ASSIGNED TO SEBA
+#"""
+#priority = 1
+#deadline = ["iros paper submission deadline", 2025-03-01]
+#is_done = false
+#dependencies = []
+#purpose = """part of paper"""
+#hours_required = 20
+
+[[project_plan.action_items.action_items]]
+name = "writing introdution" 
+description = """
+we already know what the technology stack is and what we are trying to accomplish. hence it can and should be written down now. this part will focus and guide the code development, and should be  done in parallel to it. 
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = true
+dependencies = []
+purpose = """part of paper"""
+hours_required = 12
+assignee = "Seba"
+
+[[project_plan.action_items.action_items]]
+name = "writing related work" 
+description = """
+we already know what the technology stack is and what we are trying to accomplish. hence it can and should be written down now. this part will focus and guide the code development, and should be  done in parallel to it. 
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """part of paper"""
+hours_required = 12
+assignee = "Seba"
+
+[[project_plan.action_items.action_items]]
+name = "writing methodology" 
+description = """
+we already know what the technology stack is and what we are trying to accomplish. hence it can and should be written down now. this part will focus and guide the code development, and should be  done in parallel to it. 
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """part of paper"""
+hours_required = 12
+assignee = "Marko, Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "writing modelling" 
+description = """
+modelling
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """part of paper"""
+hours_required = 12
+assignee = "Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "writing CV, how to grab a cart, small behavior tree mabe" 
+description = """
+writing CV, how to grab a cart, small behavior tree mabe
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """part of paper"""
+hours_required = 12
+assignee = "X"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "writing path planning" 
+description = """
+albin's path planning
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """part of paper"""
+hours_required = 12
+assignee = "Seba"
+
+[[project_plan.action_items.action_items.action_items]]
+name = "writing controller" 
+description = """
+mpc
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = []
+purpose = """part of paper"""
+hours_required = 12
+assignee = "Marko"
+
+
+[[project_plan.action_items.action_items]]
+name = "writing experiments, discussion" 
+description = """
+once the data is in, it has to be written about. this includes generating pretty figures as well. 
+
+ASSIGNED TO SEBA
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-03-01]
+is_done = false
+dependencies = ["performing experiments"]
+purpose = """part of paper"""
+hours_required = 18
+assignee = "Marko"
+
+
+
+[[project_plan.action_items.action_items]]
+name = "writing conclusion, abstract; polishing" 
+description = """
+writing conclusion, abstract; polishing
+
+ASSIGNED TO SEBA
+"""
+priority = 1
+deadline = ["iros paper submission deadline", 2025-02-28]
+is_done = false
+dependencies = ["writing introdution, related work, methodology", 
+                "writing experiments, discussion"]
+purpose = """part of paper"""
+hours_required = 24
+assignee = "all"

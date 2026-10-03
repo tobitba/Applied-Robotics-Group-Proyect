@@ -1,0 +1,53 @@
+\section{Impedance velocity control}
+\subsection{Force/torque sensor filtering}
+Combination of moving window average and low-pass filter.
+TODO: put in the equation
+
+\paragraph{Wrench frame change}
+TODO: write in more detail and
+
+Use
+\begin{equation}
+\begin{bmatrix} 
+		R & 0 \\
+		0 & R
+\end{bmatrix} 
+\end{equation}
+because you only want frame change, not scaling!
+However, if you want the compute a \textit{different wrench},
+the one experience at a different part of the same rigid body
+where from which you received the reading,
+and still expressed in the same frame,
+use the $ Ad T $ operation.
+
+\subsection{Direct force feedback}
+As simple as adding $ K_{ f }J^{ T } Z \mathcal{F}  $ to Cartesian objective,
+where:
+\begin{itemize}
+		\item $ K_{ f }  $ is the compliance gain
+		\item $ \mathcal{F}  $ is the filtered wrench
+		\item $ J  $ is the same Jacobian as in the Cartesian objective task 
+(the end-effector Jacobian in 99\% of circumstances)
+\item $ Z = \text{diag} (z), Z \in \mathbb{R}^{6}  $ is the wrench direction scaling
+\end{itemize} 
+This then leads to the compliant Cartesian task reference twist:
+\begin{equation}
+\mathcal{V}_{ \text{compliant} } =  K_{ c }\mathcal{V}_{ \text{error} } + 
+K_{ f } J^{ T } \mathcal{F}
+\end{equation}
+
+\paragraph{Space to body frame mapping}
+
+\subsection{TODO: Impedance control}
+A 6D spring system would have the following dynamics
+\begin{equation}
+TODO
+\end{equation}
+From which the impedance reference error can be computed as
+\begin{equation}
+TODO
+\end{equation}
+Leading to the following reference velocity:
+\begin{equation}
+TODO
+\end{equation}

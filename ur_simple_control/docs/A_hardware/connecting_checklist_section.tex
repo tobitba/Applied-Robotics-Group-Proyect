@@ -1,0 +1,66 @@
+\begin{enumerate}
+	\item Is the ethernet cable plugged in (are laps blinking) / are you connected to wifi?
+	\item Do you know the IP address of the robot?
+\begin{itemize}
+	\item Do you know your own IP address on LAN?
+		Use nmcli, ifconfig, or ip addr to find it. 
+		Also note the interface for this IP. Is it ethernet or wifi? Do you know which one you want?
+	\item Find all IPs on a network with arp-scan. 
+		You might have to specify the network interface to get output (ex. eth0). 
+		You also might have to run this as root (put sudo in front of command)
+		Example:
+		\newline
+		arp-scan 192.168.0.1/24 -I eth0
+\end{itemize}
+\item Is the robot actually connected to the network? Send it a ping with ping ROBOT\_IP.
+\item If on Docker, are you sure you share your host network with the Docker container?
+	Do all network checks in this list on both your host and inside the Docker container.
+	If your OS does not support --net=host on Docker, make sure you're forwarding the necessary ports.
+\item Are you sure the robot is ready to receive commands?
+\begin{itemize}
+\item Is the robot set to "remote control" or whatever similar setting for you to be able to connect to it?
+\item Is the robot in "emergency stop mode"?
+\item Are the robot's motor on/initialized?
+\end{itemize}
+\item Are you sure can connect to the robot? 
+\begin{itemize}
+	\item Try ssh-ing into it/ open its dashboard in WEB/whatever else to make sure connection is fine, and not some problem with 
+		the control port, or the driver. 
+\end{itemize}
+\item Are you sure can use the remote-control interface/robot driver? 
+\begin{itemize}
+	\item Did the previous interface exit cleanly? The socket might not have been cleaned up. Try running again. 
+		Look at the terminal for specific errors. Try running again.
+	\item If using ROS, are you sure all topics are brought up? Do topic list. Then do topic echo on all of them.
+\end{itemize}
+\item Remove all bells and whistles to test just connection to the robot, maybe just one of the following is the problem:
+\begin{itemize}
+	\item Skip connecting to the gripper, if any.
+	\item Skip parts of the robot. Say on a mobile manipulator, connect to just the arm. Then just the base. 
+	\item Skip initializing f/t sensors, if any.
+	\item Skip initializing the camera, if any.
+	\item If on ROS, do the smallest possible bringup.
+	\item Use the simplest possible control example (I always do a point-to-point clik).
+\end{itemize}
+\item Reboot the robot, run through all the steps again.
+\item Reboot your computer, run through all the steps again.
+\item Use a different computer, run through all the steps again.
+\item Are you using a 1-1 to connection to the robot, or is it going through some LAN in your lab? 
+	This intermediary might be the culprit.
+	Switch to a 1-1 connection (network is just your computer and the robot, create new fixed connection),
+	i.e. plug the ethernet cable directly from the robot into your computer.
+	If the robot itself has a router, switch etc, try skipping over it and go directly to the robot.
+	Maybe this router/something else has to run DHCP, and you have to let it assign you an IP.
+	Try both a fixed IP and let whatever assign the IP to you. The same goes for the robot itself.
+	(had a gripper that had to run it's DHCP, and everything obey the gripper).
+\item Disable (all) firewall(s) on your computer, if any, try again 
+	(had a Windows computer which did not allow socket.bind() period, due to idk what).
+\item Maybe something else is preventing socket binding/listening. ssh into the robot. Try connecting with netcat. 
+	nc -kl 0.0.0.0 7777 on robot, try nc ROBOT\_IP 7777 on your computer. This should be an echo server.
+	Try nc -kl ROBOT\_IP 7777 on robot also. Try using different ports.
+	Make sure it works the other way around, i.e. nc -kl on your machine , nc from robot (-l is listening, meaning that's the server).
+\item If you got to here, you can connect to the robot and the interface doesn't work for whatever reason.
+	Try putting your control code onto the robot's computer, run it from there. First just try the driver from the robot itself.
+\item Send an email/open a github issue to whoever gave you/wrote the interface to the robot, give them all the error logs
+	and convince them it's not something in the connection or something preventing connections on your computer.
+\end{enumerate}

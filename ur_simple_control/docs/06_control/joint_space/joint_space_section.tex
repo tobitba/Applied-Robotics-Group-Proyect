@@ -1,0 +1,100 @@
+\section{Joint-space control}
+\subsection{Joint-space velocity control}
+\subsubsection{Point to point control}
+For point to point motion,
+there is P-, PD- and PI-controller with feedback on positions.
+For example,
+
+\begin{algorithm}[H]
+\caption{moveJP}
+\begin{algorithmic}[1] % The [1] adds line numbers
+\Procedure{moveJP}{cfg, robot\_manager, q\_desired}
+\While{not breakFlag}
+\State $ e \gets q_{desired} - q$ 
+    \State $v_{cmd} = K_p \cdot e$
+    \If {$e < $ goal\_error}
+    \State breakFlag $\gets$ True
+    \EndIf
+\EndWhile
+\EndProcedure
+\end{algorithmic}
+\label{cart-reference-algorithm}
+\end{algorithm}
+
+As one might expect, the P-controller struggles to converge,
+while the PI-controller can overshoot.
+PD control seems to do best. None of them are \textit{great}.
+The robot moves more smoothly and happily if provided
+with a nice trajectory. This is the case
+because then the errors are smaller. Thankfully,
+generating a nice trajectory in joint space is very easy ---
+simply follow the straight line from $q$ to $q_\text{desired}$
+in joint space, and put a polynomial time law on it.
+But first, we introduce trajectory following control.
+
+
+
+\subsubsection{Trajectory tracking control}
+The control of choise is a P-controller with feedback on positions 
+and feedforward velocity term. This effectively forms PD-control.
+
+\begin{algorithm}[H]
+\caption{followParametrizedJointTrajectory}
+\begin{algorithmic}[1] % The [1] adds line numbers
+	\Procedure{followParametrizedJointTrajectory}{cfg, robot\_manager, $q_{ref}$}
+\While{not breakFlag}
+\State $v_{cmd} \gets K_p (q_{ref}(t) - q) + \dot{q}_{ref}(t)$
+\If {$t > t_{final}$ and $ \left\lVert v_{ cmd } \right \rVert < \epsilon   $}
+\State breakFlag $\gets$ True
+\EndIf
+\EndWhile
+\EndProcedure
+\end{algorithmic}
+\label{algo-joint-traj-tracking}
+\end{algorithm}
+
+\subsubsection{Most common joint space controller}
+The most common joint space task is a point to point motion
+to the robot's home position, or otherwise get the robot
+close to the relevant part of the environment. 
+By starting from a known home position
+one can ensure good performance of subsequent controllers.
+This is also good practise to ensure repeatability.
+However, as mentioned, the point-to-point controllers are not great.
+However$^2$, as advertised, it is very easy to find a nice smooth
+trajectory for joint-space motions,
+and then apply the trajectory tracking controller.
+
+Namely, the smooth path is a straight line in joint space,
+$q_{ref}(s) = q_0 + s(q_{desired} - q_0), s \in [0,1]$.
+To ensure smooth robot motion, we construct an appropriate 
+trajectory. Polynomials are a great and easy solution,
+as they are fully determined by their start and end points.
+The higher the degree of polynomial, the more descriptive
+the conditions can be (setting not only velocity, but also
+acceleration, jerk,...). Furthermore, the higher the polynomial,
+the more trajectory derivatives are continuous.
+Usually, we care about accelerations and use a quintic polynomials
+(as then the acceleration reference is a nice cubic instead of
+being continuous or linear).
+But, for simplicity, here we use a cubic polynomial,
+which then has a quadratic velocity profile and a linear acceleration
+profile.
+
+
+\begin{algorithm}[H]
+\caption{moveJWTraj}
+\begin{algorithmic}[1] % The [1] adds line numbers
+\Procedure{moveJWTraj}{cfg, robot\_manager, $q_{desired}$}
+\State $ v_{\max} \gets v[argmax(|q_{desired} - q |)] $
+\State $T_{final} = 0.8\frac{max(|q_{desired} - q |)}{v_{\max}} $
+\State $q_{ref}(t) \gets q_0 + \left( \frac{3t^2}{T_{final}^2} - \frac{2t^3}{T_{final}^3} \right) (q_{desired} - q_0)$
+\State $\dot{q}_{ref}(t) \gets \left( \frac{6t}{T_{final}^2} - \frac{6t^2}{T_{final}^3} \right) (q_{desired} - q_0)$
+\State followParametrizedJointTrajectory(cfg, robot\_manager, $q_{ref}$)
+\EndProcedure
+\end{algorithmic}
+\label{algo-movejwtraj}
+\end{algorithm}
+
+\subsection{Joint-space torque control}
+TODO

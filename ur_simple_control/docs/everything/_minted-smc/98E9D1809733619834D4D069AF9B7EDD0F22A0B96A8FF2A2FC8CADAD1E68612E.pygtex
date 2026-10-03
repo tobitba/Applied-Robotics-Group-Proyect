@@ -1,0 +1,5 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{n}{mode\PYGZus{}1} \PYG{o}{=} \PYG{n}{AbstractRobotManager}\PYG{o}{.}\PYG{n}{control\PYGZus{}mode}\PYG{o}{.}\PYG{n}{mode\PYGZus{}1}
+\PYG{n}{loop\PYGZus{}manager\PYGZus{}controllerX} \PYG{o}{=} \PYG{n}{controllerX}\PYG{p}{(}\PYG{o}{..}\PYG{p}{,} \PYG{n}{args\PYGZus{}smc}\PYG{p}{,} \PYG{n}{robot}\PYG{p}{,} \PYG{n}{run}\PYG{o}{=}\PYG{k+kc}{False}\PYG{p}{)}
+\PYG{n}{modes\PYGZus{}and\PYGZus{}loops}\PYG{o}{.}\PYG{n}{append}\PYG{p}{((}\PYG{n}{mode\PYGZus{}1}\PYG{p}{,} \PYG{n}{loop\PYGZus{}manager\PYGZus{}controllerX}\PYG{p}{))}
+\end{Verbatim}

@@ -1,0 +1,35 @@
+[project]
+name = "SMC"
+version = "0.0.4"
+authors = [
+  { name="Marko Guberina", email="marko.guberina@control.lth.se" },
+]
+maintainers = [
+  { name="Marko Guberina", email="marko.guberina@control.lth.se" },
+]
+description = "Simple Manipulator Control (SMC) - simplest possible framework for robot control."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+    "Development Status :: 3 - Alpha",
+#    "Intended Audience :: Robotics Engineers",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+keywords = ["robot control", "manipulator", "mobile manipulator", "dual-arm"]
+
+[project.urls]
+Homepage = "https://gitlab.control.lth.se/marko-g/ur_simple_control"
+#Issues = "https://github.com/pypa/sampleproject/issues"
+
+[build-system]
+requires = ["hatchling >= 1.26"]
+build-backend = "hatchling.build"
+
+
+# TODO: put in dependencies (pinocchio, numpy, meshcat)
+
+
+# TODO: put in optional dependencies (qpsolvers, quadprog, etc)

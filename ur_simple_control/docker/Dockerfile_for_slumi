@@ -1,0 +1,51 @@
+FROM ros:noetic-ros-base-focal
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3.8  \
+        python3-pip \
+        protobuf-compiler \
+	python3-catkin-tools \
+        git \
+        sudo \
+        iputils-ping \
+        arp-scan \
+        vim 
+
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2
+
+RUN gpg --keyserver hkps://keyserver.ubuntu.com --recv-key 0xAB17C654 && apt-get update && apt-get install --yes python3-vcstool
+
+
+# setup user
+RUN useradd -m -s /bin/zsh -G sudo -u 1001 student
+
+WORKDIR /home/student/
+RUN passwd -d student
+USER student
+
+
+# install yumift 
+WORKDIR /home/student/
+USER student
+RUN mkdir -p /home/student/yumift_ws/src 
+WORKDIR /home/student/yumift_ws
+RUN catkin init
+WORKDIR /home/student/yumift_ws/src
+RUN git clone https://github.com/ros-industrial/abb_robot_driver.git
+RUN vcs import . --input abb_robot_driver/pkgs.repos
+RUN git clone https://github.com/UTNuclearRoboticsPublic/netft_utils.git -b master
+RUN git clone https://github.com/ilVecc/yumift.git
+WORKDIR /home/student/yumift_ws
+RUN rosdep update --rosdistro=noetic
+RUN rosdep install --from-paths . --ignore-src --rosdistro noetic -y
+RUN . /opt/ros/noetic/setup.sh && catkin build 
+RUN echo "source ~/yumift_ws/devel/setup.bash" >> /home/student/.bashrc
+WORKDIR /home/student/
+
+# copy repo to workdir
+RUN mkdir bridging_scripts
+COPY --chown=student ./python/smc/robots/implementations/slumi/ ./bridging_scripts/
+COPY --chown=student /docker/dot_files_for_docker/.vimrc /home/student/
+
+# translation layer dependencies
+RUN pip3 install protobuf

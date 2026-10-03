@@ -1,0 +1,55 @@
+class YumiGrippersCommand(object):
+    """ Class for controlling the grippers on YuMi, the grippers are controlled
+        in [mm] and uses ros service
+    """
+    def __init__(self):
+        # ROS services for SmartGrippers
+        self._service_SetSGCommand = rospy.ServiceProxy("/yumi/rws/sm_addin/set_sg_command", SetSGCommandSrv, persistent=True)
+        self._service_RunSGRoutine = rospy.ServiceProxy("/yumi/rws/sm_addin/run_sg_routine", TriggerWithResultCodeSrv, persistent=True)
+        self._prev_gripper_r = 0
+        self._prev_gripper_l = 0
+
+    def _set_position_service(self, name: str, current: float, target: float, tol: float = 1e-5):
+        """ Set the new position for a gripper
+            :param name: EGM task to use
+            :param current: current position value of the gripper
+            :param target: target position value of the gripper
+            :returns changed: position changed flag
+        """
+        if abs(current - target) >= tol:
+            if target <= 0.1:
+                # CLOSE command
+                self._service_SetSGCommand.call(task=name, command=6)
+            else:
+                # GOTO command
+                self._service_SetSGCommand.call(task=name, command=5, target_position=target)
+            return True
+        return False
+
+    def send_position_cmd(self, gripper_r: float = None, gripper_l: float = None):
+        """ Set new gripping position
+            :param gripper_r: position in millimeters
+            :param gripper_l: position in millimeters
+        """
+        did_something = False
+        try:
+            # stacks/set the commands for the grippers 
+            # do not send the same command twice as grippers will momentarily regrip
+            
+            # set position values for the grippers
+            if gripper_r is not None:
+                if self._set_position_service("T_ROB_R", self._prev_gripper_r, gripper_r):
+                    self._prev_gripper_r = gripper_r
+                    did_something = True
+            
+            if gripper_l is not None:
+                if self._set_position_service("T_ROB_L", self._prev_gripper_l, gripper_l):
+                    self._prev_gripper_l = gripper_l
+                    did_something = True
+
+            # send the commands to the robot
+            if did_something:
+                self._service_RunSGRoutine.call()
+
+        except Exception as ex:
+            print(f"SmartGripper error : {ex}")

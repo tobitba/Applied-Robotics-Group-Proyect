@@ -1,0 +1,47 @@
+\section{Notation}
+To avoid confusion, let's explicitly define the notation used in the rest of the text.
+\begin{itemize}
+\item $ q \in \mathbb{R}^{nq} $ - joint configuration vector
+\item $ v \in \mathbb{R}^{nv} $ - joint velocity vector
+\item $ a \in \mathbb{R}^{nv} $ - joint acceleration vector
+\item $ \tau \in \mathbb{R}^{nv} $ - joint torque vector
+\item $ u \in \mathbb{R}^{nu} $ - control input (almost always 
+	the velocity command vector $ v_{ cmd } \in \mathbb{R}^{nv}  $)
+\item $ T_{ a }^{ b } \in SE (3) $ - element of the special Euclidean group,
+	representing the frame $ \left\{ b \right\}   $ as seen in frame $ \left\{ a \right\}   $. Most often the end-effector frame as seen in the world frame $ T_{ w }^{ e }  $.
+It's it's own $ SE(3)  $ object in code with functions like act() which
+apply the transformation to a different object.
+Mathematically,
+	unless explicitly stated otherwise, it's should be considered as a homogeneous 
+	transformation matrix 
+	\begin{equation}
+	T_{ a }^{ b }= 
+	\begin{bmatrix} 
+			R_{ a }^{ b } \in \mathbb{R}^{3 \times 3} & p_{ a }^{ b } \in \mathbb{R}^{3} \\
+			0 \in \mathbb{R}^{1 \times 3} & 1
+	\end{bmatrix} 
+	\end{equation}
+\item $ J_{ a }^{ b } (q)  $ - Jacobian of the $ T_{ a }^{ b } (q)  $ map
+	which depends on the joint configuration $ q  $.
+	Most often $ J_{ w }^{ e } (q)  $ and abbreviated to just $ J  $,
+	but should be obvious what it is within the context.
+	\textbf{VERY IMPORTANT NOTE} by default, in Pinocchio,
+	and in SMC, all Jacobians
+	are \textbf{body Jacobians}, meaning they map to velocities
+	in the end-effector frame $ \left\{ e \right\}   $,
+	\textbf{not} in the world frame $ \left\{ w \right\}   $.
+	This is because Pinocchio does kinematics and dynamics with the 
+	Lie group approach in which body frame are more natural, 
+	and because more computationally efficient to
+	compute quantities in the body frame.
+	Space Jacobians can be computed easily by passing an additional argument
+	to the pinocchio::getFrameJacobian() function,
+	but this is not done in the SMC framework \textit{at all}.
+\item $ e  $ - generic error vector 
+\item twist $ \mathcal{V}  \in \mathbb{R}^6$- combined vector of linear $ v  $
+	and rotational velocity $ \omega  $, 
+	$ \mathcal{V} = \begin{bmatrix} v & \omega \end{bmatrix}^{ T }  $
+\item wrench $ \mathcal{F} \in \mathbb{R}^6 $- combined vector of linear force $ f  $
+	and torque $ \tau  $, 
+	$ \mathcal{F} = \begin{bmatrix} f & \tau \end{bmatrix}^{ T }  $
+\end{itemize}

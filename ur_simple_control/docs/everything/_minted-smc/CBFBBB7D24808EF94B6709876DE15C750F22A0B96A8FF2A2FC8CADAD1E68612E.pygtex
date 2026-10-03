@@ -1,0 +1,10 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{smc.bookkeeping.registry}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{ConfigRegistry}
+\PYG{k+kn}{from}\PYG{+w}{ }\PYG{n+nn}{dataclasses}\PYG{+w}{ }\PYG{k+kn}{import} \PYG{n}{dataclass}\PYG{p}{,} \PYG{n}{field}
+
+\PYG{n}{ConfigRegistry}\PYG{o}{.}\PYG{n}{register}\PYG{p}{(}\PYG{l+s+s2}{\PYGZdq{}your\PYGZus{}control\PYGZdq{}}\PYG{p}{)}
+\PYG{n+nd}{@dataclass}
+\PYG{k}{class}\PYG{+w}{ }\PYG{n+nc}{ConfigYour}\PYG{p}{:}
+    \PYG{n}{arg1}\PYG{p}{:} \PYG{n+nb}{str} \PYG{o}{=} \PYG{n}{field}\PYG{p}{(}\PYG{n}{default}\PYG{o}{=}\PYG{l+s+s2}{\PYGZdq{}\PYGZdq{}}\PYG{p}{,} \PYG{n}{metadata}\PYG{o}{=}\PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}help\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}arg1 does ...\PYGZdq{}}\PYG{p}{\PYGZcb{})}
+    \PYG{n}{arg2}\PYG{p}{:} \PYG{n+nb}{int} \PYG{o}{=} \PYG{n}{field}\PYG{p}{(}\PYG{n}{default}\PYG{o}{=}\PYG{l+m+mi}{0}\PYG{p}{,} \PYG{n}{metadata}\PYG{o}{=}\PYG{p}{\PYGZob{}}\PYG{l+s+s2}{\PYGZdq{}help\PYGZdq{}}\PYG{p}{:} \PYG{l+s+s2}{\PYGZdq{}arg2 does ...\PYGZdq{}}\PYG{p}{\PYGZcb{})}
+\end{Verbatim}

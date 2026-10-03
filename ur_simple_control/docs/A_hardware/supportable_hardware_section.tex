@@ -1,0 +1,38 @@
+\section{Supportable hardware}
+\label{sec-supportable-hardware}
+Any interface to a robot that has a function like
+\fbox{\texttt{q = interface.getQ()}} to get the current joint positions
+and a function to send velocity commands like
+\fbox{\texttt{interface.sendQd(qd)}}
+can be made to comply with SMC.
+Along with this, one needs to have a URDF of the robot
+or manually construct the Pinocchio model.
+
+The requirements are codified contract via 
+\fbox{\texttt{AbstractRealRobotManager}}'s 
+abstract methods.
+This class inherits from AbstractRobotManager,
+and exist simply because it has additional methods not needed in simulation
+(for simulation we use AbstractSimulatedRobotManager which integrates
+joint positions instead of reading them from the real robot).
+
+
+Here are methods which need to implemented
+in the \fbox{\texttt{RealXYZRobotManager}} to get SMC to control a real robot XYZ.
+\begin{itemize}
+		\item \fbox{\texttt{connectToRobot()}}
+		\item \fbox{\texttt{\_updateQ()}}
+		\item \fbox{\texttt{sendVelocityCommandToReal()}}
+		\item \fbox{\texttt{setInitialPose()}}
+		\item \fbox{\texttt{stopRobot()}}
+\end{itemize}
+
+The following functions are also made abstract,
+but could trivially implemented (ex. just an empty return)
+if not available or required:
+\begin{itemize}
+		\item \fbox{\texttt{connectToGripper()}}
+		\item \fbox{\texttt{\_updateV()}}
+		\item \fbox{\texttt{setFreedrive()}}
+		\item \fbox{\texttt{unSetFreedrive()}}
+\end{itemize}

@@ -1,0 +1,30 @@
+\section{Localization and navigation}
+\section{Localization}
+\subsubsection{Odometry}
+If you just want to move by 3 meters to test a whole body controller,
+and you do not really need to know where on the map this is happening,
+you want odometry. If you are interacting with one or few objects in the environment,
+and do not need to search for them (ex. you're testing a door-opening controller),
+then put QR codes on the object, and localize from vision ---
+you do not need to know where these QR code are in the room (or that there even is a room apart
+from the space between the robot and the object).
+
+Falls apart in about 10 meters or 1-2 minutes or runtime.
+
+\subsubsection{Maps}
+Use someone else SLAM unless this is your explicit focus.
+
+\subsubsection{Localization on maps}
+Write or use someone else Kalman filter to bridge between slow localization updates
+and fast odometry.
+
+\subsection{Navigation}
+You actually just use existing controllers,
+the only difference is that the robot model is different.
+However, some work better than others,
+especially for underactuated platforms.
+Assuming this is the case, consider the following controllers:
+\begin{itemize}
+		\item MPC for trajectory tracking
+		\item QP with velocity bounds: TODO: test this better
+\end{itemize}

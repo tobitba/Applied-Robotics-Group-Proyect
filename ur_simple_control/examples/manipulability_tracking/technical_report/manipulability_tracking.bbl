@@ -1,0 +1,303 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.2 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{ynt/global//global/global}
+    \entry{lee1989dual}{article}{}
+      \name{author}{1}{}{%
+        {{hash=f4a7044e651356d45438dc28920c977e}{%
+           family={Lee},
+           familyi={L\bibinitperiod},
+           given={Sukhan},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{f4a7044e651356d45438dc28920c977e}
+      \strng{fullhash}{f4a7044e651356d45438dc28920c977e}
+      \strng{bibnamehash}{f4a7044e651356d45438dc28920c977e}
+      \strng{authorbibnamehash}{f4a7044e651356d45438dc28920c977e}
+      \strng{authornamehash}{f4a7044e651356d45438dc28920c977e}
+      \strng{authorfullhash}{f4a7044e651356d45438dc28920c977e}
+      \field{labelalpha}{Lee89}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Transactions on Robotics and Automation}
+      \field{number}{1}
+      \field{title}{Dual redundant arm configuration optimization with task-oriented dual arm manipulability}
+      \field{volume}{5}
+      \field{year}{1989}
+      \field{pages}{78\bibrangedash 97}
+      \range{pages}{20}
+    \endentry
+    \entry{lee2016humanoid}{article}{}
+      \name{author}{2}{}{%
+        {{hash=2b74d974f7601817cdea63f6a6cbadfb}{%
+           family={Lee},
+           familyi={L\bibinitperiod},
+           given={Inho},
+           giveni={I\bibinitperiod}}}%
+        {{hash=5abb61303d49b975276e7535314872b9}{%
+           family={Oh},
+           familyi={O\bibinitperiod},
+           given={Jun-Ho},
+           giveni={J\bibinithyphendelim H\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Springer}%
+      }
+      \strng{namehash}{e16e81461fd688e9f3fc85849acef6f9}
+      \strng{fullhash}{e16e81461fd688e9f3fc85849acef6f9}
+      \strng{bibnamehash}{e16e81461fd688e9f3fc85849acef6f9}
+      \strng{authorbibnamehash}{e16e81461fd688e9f3fc85849acef6f9}
+      \strng{authornamehash}{e16e81461fd688e9f3fc85849acef6f9}
+      \strng{authorfullhash}{e16e81461fd688e9f3fc85849acef6f9}
+      \field{labelalpha}{LO16}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Journal of Intelligent \& Robotic Systems}
+      \field{number}{3}
+      \field{title}{Humanoid posture selection for reaching motion and a cooperative balancing controller}
+      \field{volume}{81}
+      \field{year}{2016}
+      \field{pages}{301\bibrangedash 316}
+      \range{pages}{16}
+    \endentry
+    \entry{jaquier2018geometry}{inproceedings}{}
+      \name{author}{4}{}{%
+        {{hash=692c2f70a8babdfc65345b921e1005fd}{%
+           family={Jaquier},
+           familyi={J\bibinitperiod},
+           given={Noémie},
+           giveni={N\bibinitperiod}}}%
+        {{hash=797aa03cb1312f53af1d1c92ee4aa822}{%
+           family={Rozo},
+           familyi={R\bibinitperiod},
+           given={Leonel\bibnamedelima Dario},
+           giveni={L\bibinitperiod\bibinitdelim D\bibinitperiod}}}%
+        {{hash=9d989a5cb2cad2afc11c8e0d17980e42}{%
+           family={Caldwell},
+           familyi={C\bibinitperiod},
+           given={Darwin\bibnamedelima G},
+           giveni={D\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=bacdea873fd4ba05ad401b50898a5d71}{%
+           family={Calinon},
+           familyi={C\bibinitperiod},
+           given={Sylvain},
+           giveni={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{fullhash}{f2eee243cdaeac080eccd9bc2e38cd83}
+      \strng{bibnamehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{authorbibnamehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{authornamehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{authorfullhash}{f2eee243cdaeac080eccd9bc2e38cd83}
+      \field{extraname}{1}
+      \field{labelalpha}{Jaq+18}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Robotics: Science and Systems}
+      \field{number}{CONF}
+      \field{title}{Geometry-aware Tracking of Manipulability Ellipsoids.}
+      \field{year}{2018}
+    \endentry
+    \entry{jaquier2021geometry}{article}{}
+      \name{author}{4}{}{%
+        {{hash=692c2f70a8babdfc65345b921e1005fd}{%
+           family={Jaquier},
+           familyi={J\bibinitperiod},
+           given={Noémie},
+           giveni={N\bibinitperiod}}}%
+        {{hash=2516ec4d9f44d443cddaf7073b569758}{%
+           family={Rozo},
+           familyi={R\bibinitperiod},
+           given={Leonel},
+           giveni={L\bibinitperiod}}}%
+        {{hash=9d989a5cb2cad2afc11c8e0d17980e42}{%
+           family={Caldwell},
+           familyi={C\bibinitperiod},
+           given={Darwin\bibnamedelima G},
+           giveni={D\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=bacdea873fd4ba05ad401b50898a5d71}{%
+           family={Calinon},
+           familyi={C\bibinitperiod},
+           given={Sylvain},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Sage Publications Sage UK: London, England}%
+      }
+      \strng{namehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{fullhash}{7f472a840a1452dd9d8adf392cbfe510}
+      \strng{bibnamehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{authorbibnamehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{authornamehash}{8636916b3e88b020658c9e9854bfacc5}
+      \strng{authorfullhash}{7f472a840a1452dd9d8adf392cbfe510}
+      \field{extraname}{2}
+      \field{labelalpha}{Jaq+21}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{The International Journal of Robotics Research}
+      \field{number}{2-3}
+      \field{title}{Geometry-aware manipulability learning, tracking, and transfer}
+      \field{volume}{40}
+      \field{year}{2021}
+      \field{pages}{624\bibrangedash 650}
+      \range{pages}{27}
+    \endentry
+    \entry{maric2021riemannian}{article}{}
+      \name{author}{5}{}{%
+        {{hash=8172b142c2d073dad74ce80518cf5d4f}{%
+           family={Marić},
+           familyi={M\bibinitperiod},
+           given={Filip},
+           giveni={F\bibinitperiod}}}%
+        {{hash=11e4b2ccf3669c6d9cedfe71ec2695d5}{%
+           family={Petrović},
+           familyi={P\bibinitperiod},
+           given={Luka},
+           giveni={L\bibinitperiod}}}%
+        {{hash=f300b4fb9ffb302b2f141b90befbd1f5}{%
+           family={Guberina},
+           familyi={G\bibinitperiod},
+           given={Marko},
+           giveni={M\bibinitperiod}}}%
+        {{hash=78a97df824a6dcbb4aac91851e9a4f3d}{%
+           family={Kelly},
+           familyi={K\bibinitperiod},
+           given={Jonathan},
+           giveni={J\bibinitperiod}}}%
+        {{hash=71c5247a777501bcb6bb1c5af24a77bf}{%
+           family={Petrović},
+           familyi={P\bibinitperiod},
+           given={Ivan},
+           giveni={I\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {Elsevier}%
+      }
+      \strng{namehash}{94916dc47e85d150d7e5f722548ca3c6}
+      \strng{fullhash}{10c5440b30a871caeb8aa2c2d9932dc6}
+      \strng{bibnamehash}{94916dc47e85d150d7e5f722548ca3c6}
+      \strng{authorbibnamehash}{94916dc47e85d150d7e5f722548ca3c6}
+      \strng{authornamehash}{94916dc47e85d150d7e5f722548ca3c6}
+      \strng{authorfullhash}{10c5440b30a871caeb8aa2c2d9932dc6}
+      \field{labelalpha}{Mar+21}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{Robotics and autonomous systems}
+      \field{title}{A Riemannian metric for geometry-aware singularity avoidance by articulated robots}
+      \field{volume}{145}
+      \field{year}{2021}
+      \field{pages}{103865}
+      \range{pages}{1}
+    \endentry
+    \entry{yan2021decentralized}{article}{}
+      \name{author}{3}{}{%
+        {{hash=096ccd0cf10fd7aaecd027d8d7830b0a}{%
+           family={Yan},
+           familyi={Y\bibinitperiod},
+           given={Lei},
+           giveni={L\bibinitperiod}}}%
+        {{hash=435a8c1488eb906a7b0b50d2ae9e6f29}{%
+           family={Stouraitis},
+           familyi={S\bibinitperiod},
+           given={Theodoros},
+           giveni={T\bibinitperiod}}}%
+        {{hash=7b2c17552ac9061afc4606fc8fc554b9}{%
+           family={Vijayakumar},
+           familyi={V\bibinitperiod},
+           given={Sethu},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{ca85a2afc7ff861a9227eb389bcabefc}
+      \strng{fullhash}{ca85a2afc7ff861a9227eb389bcabefc}
+      \strng{bibnamehash}{ca85a2afc7ff861a9227eb389bcabefc}
+      \strng{authorbibnamehash}{ca85a2afc7ff861a9227eb389bcabefc}
+      \strng{authornamehash}{ca85a2afc7ff861a9227eb389bcabefc}
+      \strng{authorfullhash}{ca85a2afc7ff861a9227eb389bcabefc}
+      \field{labelalpha}{YSV21}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{IEEE Robotics and Automation Letters}
+      \field{number}{2}
+      \field{title}{Decentralized ability-aware adaptive control for multi-robot collaborative manipulation}
+      \field{volume}{6}
+      \field{year}{2021}
+      \field{pages}{2311\bibrangedash 2318}
+      \range{pages}{8}
+    \endentry
+    \entry{reithmeir2022human}{inproceedings}{}
+      \name{author}{3}{}{%
+        {{hash=b0c58007ed3171effb82b6ca01b39ebb}{%
+           family={Reithmeir},
+           familyi={R\bibinitperiod},
+           given={Anna},
+           giveni={A\bibinitperiod}}}%
+        {{hash=c920983f473b39f6075496f3abe9885c}{%
+           family={Figueredo},
+           familyi={F\bibinitperiod},
+           given={Luis},
+           giveni={L\bibinitperiod}}}%
+        {{hash=1eeed5190ecef27eb5b83d595cd48d5f}{%
+           family={Haddadin},
+           familyi={H\bibinitperiod},
+           given={Sami},
+           giveni={S\bibinitperiod}}}%
+      }
+      \list{organization}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{7823752fab7a5391e297565af25b4d0f}
+      \strng{fullhash}{7823752fab7a5391e297565af25b4d0f}
+      \strng{bibnamehash}{7823752fab7a5391e297565af25b4d0f}
+      \strng{authorbibnamehash}{7823752fab7a5391e297565af25b4d0f}
+      \strng{authornamehash}{7823752fab7a5391e297565af25b4d0f}
+      \strng{authorfullhash}{7823752fab7a5391e297565af25b4d0f}
+      \field{labelalpha}{RFH22}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{2022 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS)}
+      \field{title}{Human-to-robot manipulability domain adaptation with parallel transport and manifold-aware ICP}
+      \field{year}{2022}
+      \field{pages}{5218\bibrangedash 5225}
+      \range{pages}{8}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+

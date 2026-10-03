@@ -1,0 +1,5 @@
+changes required to put cart control point elsewhere
+----------------------------------------------------
+- T_abs_c required for control
+- ||T_abs_c.translation|| added to L_b_c
+- Gamma_c needs to be mapped from workspace circle to actual position, if nothing else then to have correct plots

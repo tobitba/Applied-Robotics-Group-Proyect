@@ -1,0 +1,216 @@
+\section{Robots with ROS2 drivers}
+\label{sec-ros2}
+\subsection{An opinionated introduction to ROS}
+The text in this subsection assumes ROS2, unless stated otherwise.
+Furthermore, its purpose is not to provide documentation to ROS,
+which is now decent and can be found \href{https://docs.ros.org/}{here}.
+Instead, it is to give you, the reader, the minimal necessary context
+necessary to decide whether you want to or have to delve into ROS,
+and to provide rationale for how SMC is integrated with ROS.
+
+\paragraph{What is ROS}
+ROS, which stands for Robotic Operating System, is the biggest
+set of open source robotics software.
+Its value proposition is to provide a complete software ecosystem
+for a robotics platform. The purpose of having a shared ecosystem
+is to provide an as uniform as possible API to the various
+components of a robotics system --- thus you need to learn 
+only one way to program a robot,
+instead of multiple frameworks for each component of a robotic system.
+This also makes the integration of all components simpler.
+Its key component, the feature
+that ties everything together, is a multiprocessing and IPC 
+framework called RCL. RCL's value proposition is the alleviation
+of the need to write explicit multiprocessing and IPC code,
+which can be very demanding to implement properly,
+and requires a lot of specific knowledge.
+
+
+Along with RCL, ROS comes with libraries for various components
+of a robotic system: path planning (MoveIt), control (ROSControl), navigation (Nav2), 
+all kinds of sensor processing, visualization and so on.
+Additionally, there are dedicated wrappers around common software building
+systems and Linux workflows. For example, ROS packages are build with Colcon
+which is a layer on top of CMake.
+
+For more information, the reader is referred to \href{https://docs.ros.org/}{ROS documentation}.
+
+
+\paragraph{A good situation to use ROS in}
+The bigger and more complex the robotic platform in question, the more 
+value can be gained by using ROS. This is because if the robotic system
+consist of dozens of sensors, multiple computers and possibly hundreds of threads,
+management of all this resources becomes practically impossible
+if they do not all operate under the same software architecture. 
+This is most obvious when working with mobile platform which need
+to perform mapping, localization, planning and control,
+and make use of ultrasonic distance sensors, Lidars and cameras 
+to achieve their tasks.
+
+\paragraph{A situation where ROS is unnecessary}
+However, if one works with a simpler robotic system, like a single
+manipulator, a force torque sensor and a camera, writing software wrappers
+around hardware drivers to conform to a very generic API yields little reward
+as these resources can be easily managed individually.
+Furthermore, engineers typically work with a few robotic systems
+which do not change too often (they are very expensive)
+and which they know inside and out. In such cases
+adding additional software overhead and dependencies complicates
+both software development and maintenance
+for very little added functionality.
+
+\paragraph{What is SMC in the context of ROS?}
+Within the ROS ecosystem, SMC could be considered as an alternative to ROSControl.
+ROSControl of course has better integration with the rest of ROS,
+but it has a cumbersome API which makes implementation of controllers time consuming.
+On the other hand, since SMC has all workings of an ecosystem,
+it could also be considered as an alternative to ROS which targets 
+smaller simpler robotic platforms.
+It practise, both options work. Which one to use depends 
+on the robotic platform in question.
+
+When prototyping whole-body controllers on mobile robots with manipulators,
+having ROS run the Nav2 stack to perform mapping and localization,
+while using SMC in place of ROSControl gets the best of both worlds.
+Upon the completion of the control engineering task, the final controller
+can be re-rewritten into ROSControl API to make it more accessible (ROS is popular).
+
+When working with a single manipulator with a few sensors, SMC covers all bases,
+and leads to a more flexible workflow due to its leanness.
+
+In the end, one should weight their options and go for what seems like the least
+amount of work, which is of course heavily dependent
+on one's prior knowledge an experience. As a rule of thumb,
+ROS caters more to people with computer science backgrounds,
+while SMC caters more to control engineers.
+
+\subsection{SMC-ROS integration approach}
+To interact with ROS2 topics programmatically, publishers and subscribers need to be created in a 
+ROS \fbox{\texttt{Node}}. This falls under what a RobotManagerXYZ should do.
+Getting data from subscribers is only possible through a callback associated with the subscriber object.
+Thus, it is also better to publish commands via a dedicated function and timer
+to deal with all topics uniformly.
+
+This stands in opposition to AbstractRobotManager's and ControlLoopManager's expected way of working,
+but is inelegantly made to work with some ducktaping. 
+The main obstacle is that a RobotManagerXYZNode has simultaneously provide functionality of both
+ControlLoopManager and RobotManager.
+It has to be a ControlLoopManager because it has to publish likely heterogeneous velocity commands via their publishers,
+which is meaningless without computing those commands first.
+Since only code execution after spin() can happen in topic callbacks,
+control needs to be computed in a callback in the Node. There can be only 1 node
+as there can be only 1 RobotManager (which is an input to controllerLoops of course).
+It also has to read in the current state of the robot via subscription to various topics,
+which is the ownership of RobotManager.
+
+This coupling of control signal computation and communication with the robot is exactly
+what SMC is trying to avoid --- SMC assumes a fixed robot interface, and swappable controllers.
+Controller swapping in ROS is handled via the ROSControl module. The issue with it is its 
+verbosity, which slows down quick development and prototyping of controllers (the key
+design objective of SMC).
+Fortunately, the ducktaping between the two is neither complicated nor too annoying to use,
+and the workflow between the two is interoperable where it needs to be.
+More on how a RobotManager is made to be a RobotManagerXYZNode can is 
+lower in the text. First we introduce main file structure to start a ROS Node.
+
+\subsubsection{Main file structure}
+Any file starting a ROS node HAS TO end with the following lines of code:
+\begin{minted}[mathescape, linenos]{python}
+def main():
+    rclpy.init(args=args) # different than smc's args, more on this later
+    robot = RobotManagerXYZNode(args_smc, modes_and_loops)
+	modes_and_loops = []]
+
+	...
+
+	robot.setModesAndLoops(modes_and_loops)
+    executor = MultiThreadedExecutor() # required
+    executor.add_node(robot) # required
+    executor.spin() # required
+
+if __name__ == "__main__":
+    main()
+\end{minted}
+\paragraph{Hack 1}
+The Node can not be used without the executor, and topics can not be interacted with without a Node.
+In other words, the robot can only be interacted with from callbacks in the Node.
+This in turn means that all control modes and controllers need to be provided to the Node \textbf{before}
+executor.spin() is called.
+This is done with \fbox{\texttt{modes\_and\_loops}} which is a list of tuples
+of control modes and ControlLoopManagers. 
+
+The list is populated like this:
+\begin{minted}[mathescape, linenos]{python}
+mode_1 = AbstractRobotManager.control_mode.mode_1
+loop_manager_controllerX = controllerX(.., args_smc, robot, run=False)
+modes_and_loops.append((mode_1, loop_manager_controllerX))
+\end{minted}
+Hence, instead of immediately running the controller, the output is
+a ControlLoopManager instance with the controller and all it's settings.
+How the list of controller is used in the RobotManagerXYZNode is described in the following subsection describing
+a Node connecting a particular robot in SMC with the ROS2 ecosystem.
+
+\paragraph{Example main file}
+An example main file can be found in 
+\newline
+\fbox{\texttt{examples/ros/mir\_test.py}}.
+
+\subsubsection{Skeleton of ROS2 node for SMC}
+Python supports multiple inheritance. This means
+we can write a Node which in addition to inheriting from 
+\fbox{\texttt{rclpy.node.Node}},
+also inherits from both \fbox{\texttt{AbstractRobotXYZRobotManager}}
+and \fbox{\texttt{AbstractRealRobotManager}}.
+This way we can write a single Node to interact with the robot,
+while preserving as much as possible of the SMC architecture.
+
+\paragraph{Hack 2}
+Unfortunately one can not use \fbox{\texttt{\_getQ()}}
+and \fbox{\texttt{\_getV()}} commands, as SMC does not expects
+those to have inputs, while ROS callbacks have to receive and unpack messages.
+Hence, the first hack is to leave those as empty, and have the topic callbacks
+write to \fbox{\texttt{\_q}} and \fbox{\texttt{\_v}} instead.
+At least they remind you that you need to find the appropriate topics
+and write their respective callbacks.
+(There are other functional design choices, but I felt this was to
+be the least convoluted or ugly).
+
+\paragraph{Hack 3}
+The second issue is that \fbox{\texttt{sendVelocityCommandToReal}}
+does not make sense for the same reason - commands are to be sent via callbacks,
+as now the timing for sending messages has to be done via timers in ROS Node's.
+The least API-breaking solution is to have a variable
+\fbox{\texttt{\_v\_cmd}} which stores the computed velocity command.
+\textbf{BIG TODO:} validate that there are no race conditions
+on this variable.
+
+
+\paragraph{RobotManagerNode example}
+Look at 
+\fbox{\texttt{python/smc/robots/implementations/heron.py}}.
+
+
+\subsection{Known issues}
+\begin{itemize}
+		\item Node overrides SIGINT handling from ControlLoopManager, which is in charge 
+				of both stopping the robot and saving logs. 
+				\textbf{This is a critical issue which needs a proper solution}.
+				The current workaround is to rely on the robot's emergency stop button to stop it,
+				and to somehow manually trigger log saving (at the moment there is no fully satisfactory solution).
+		\item To read the current robot's pose before running a simulation meant to be as close to reality as possible,
+				a Node has to be spun (there is no other way to read from a topic programmatically). 
+				There is no convenient way to then change topics to those of a ROS2-supported simulator (ex. Gazebo)
+				to emulate the topic calls, or to which to a SimulatedRobotManager from within the Node,
+				simply running the controllers without publishing. 
+				\textbf{This is a critical issue which needs a proper solution. Convenient
+				pre-experiment validating simulations are required to safely perform experiments}.
+				It is simply too tempting to skip just precautions in the throws of debugging,
+				they have to be quick and painless to be actually used.
+		\item Node disables opening of windows, blocking plotter from opening a window to plot in.
+				Since this is not critical, no solution has been implemented yet.
+		\item ROS2 scripts override argument parsing, making it impossible to provide ``normal'' arguments
+				to a Python script (which is what's used in SMC). 
+				Due to the mutability of the \fbox{\texttt{args}} object ``arguments''
+				can be filled in programmatically, but this is an inconvenient hassle.
+\end{itemize}
+

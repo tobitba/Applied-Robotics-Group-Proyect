@@ -1,0 +1,16 @@
+\begin{Verbatim}[commandchars=\\\{\},codes={\catcode`\$=3\catcode`\^=7\catcode`\_=8\relax}]
+\PYG{k}{def}\PYG{+w}{ }\PYG{n+nf}{main}\PYG{p}{():}
+    \PYG{n}{rclpy}\PYG{o}{.}\PYG{n}{init}\PYG{p}{(}\PYG{n}{args}\PYG{o}{=}\PYG{n}{args}\PYG{p}{)} \PYG{c+c1}{\PYGZsh{} different than smc\PYGZsq{}s args, more on this later}
+    \PYG{n}{robot} \PYG{o}{=} \PYG{n}{RobotManagerXYZNode}\PYG{p}{(}\PYG{n}{args\PYGZus{}smc}\PYG{p}{,} \PYG{n}{modes\PYGZus{}and\PYGZus{}loops}\PYG{p}{)}
+	\PYG{n}{modes\PYGZus{}and\PYGZus{}loops} \PYG{o}{=} \PYG{p}{[]]}
+
+	\PYG{o}{...}
+
+	\PYG{n}{robot}\PYG{o}{.}\PYG{n}{setModesAndLoops}\PYG{p}{(}\PYG{n}{modes\PYGZus{}and\PYGZus{}loops}\PYG{p}{)}
+    \PYG{n}{executor} \PYG{o}{=} \PYG{n}{MultiThreadedExecutor}\PYG{p}{()} \PYG{c+c1}{\PYGZsh{} required}
+    \PYG{n}{executor}\PYG{o}{.}\PYG{n}{add\PYGZus{}node}\PYG{p}{(}\PYG{n}{robot}\PYG{p}{)} \PYG{c+c1}{\PYGZsh{} required}
+    \PYG{n}{executor}\PYG{o}{.}\PYG{n}{spin}\PYG{p}{()} \PYG{c+c1}{\PYGZsh{} required}
+
+\PYG{k}{if} \PYG{n+nv+vm}{\PYGZus{}\PYGZus{}name\PYGZus{}\PYGZus{}} \PYG{o}{==} \PYG{l+s+s2}{\PYGZdq{}\PYGZus{}\PYGZus{}main\PYGZus{}\PYGZus{}\PYGZdq{}}\PYG{p}{:}
+    \PYG{n}{main}\PYG{p}{()}
+\end{Verbatim}

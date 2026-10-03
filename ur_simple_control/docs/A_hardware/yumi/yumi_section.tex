@@ -1,0 +1,87 @@
+\subsection{ABB Mobile YuMi}
+\paragraph{TODO 1} Rewrite SMCYuMiNode into RealMobileYuMiRobotManagerNode (same way as HeronNode)
+\paragraph{TODO 2} Finish the todos in yuminode, delete commented code
+
+\subsubsection{Hardware}
+YuMi has 2 7dof arms. The payload on the end-effector is like 0.5kg (super weak).
+The mechanical design is such that the first 3 links of the arms are very close
+to the torso, so it's very easy to get self-collisions between the elbow and the torso.
+In short, the elbows should be on the side of the robot,
+and the end-effectors should be in front in almost all cases
+(have the range of a person with limited shoulder mobility).
+
+The in-house developed research-level mobile base
+is omnidirectional and generally works quite well, 
+but with some quirks. Namely,
+when the robot stops, the wheels reorient themselves
+such that the robot can not be pushed.
+A similar kind of in-place re-orientation can happen 
+if there is a large change in the angle of the commanded velocity.
+These functions are performed by the platform - one commands
+the base velocity in twist-form. Direct wheel commands are inaccessible.
+Additionally, the base only acts of velocities of a certain minimum norm.
+Velocities lower than that are (mostly) discarded.
+In total, this means that the motion of base should be a trajectory
+of (relatively) low curvature, and traversed at a speed
+over the minimum. In other words, in continuous operation the robot
+is closer to a differential drive. The omnidirectionality is useful
+for going in an arbitrary direction from a stationary position.
+TODO: None of this is explicitly modelled in YuMiRobotManager,
+and it really should be for experiments to be successfully designed
+(you can't eyeball your way around this, it has to be modelled).
+
+
+\subsubsection{Software on the robot}
+The robot has a full ROS2 stack.
+ROS connects to something called EGM which
+is a common external-control controller, i.e. it just listens
+to incoming velocity commands and then executes
+them with a proprietary inner controller. This is referred to as EGM mode on the robot.
+EGM is super annoying (randomly stops working, so need to reset it 
+etc). The ROS driver is equally as annoying. Avoid this robot if you have other options,
+unless you like restarting everything (5ish min process) every half hour.
+
+The robot has an $f_{ \text{ctrl} } \approx  $60Hz interface for full-body velocity control,
+which is a combination of individual velocity ``controllers'' for the base, 
+the torso pillar (which we don't use) and the mobile base.
+
+For the most part, the communication with the robot goes over 5G WiFi in the lab,
+meaning no code needs to be installed on the robot, but there are occasional lag spikes
+leading to loss of control for (eyeballed) 0.2-0.5 seconds. 
+[Marko's estimate is that ] This kind of interfacing is just barely acceptable
+if the control is slow and conservative. It is possible to install additional ROS2
+packages on the robot, but [by Marko's estimate] installing the control software stack
+is an ill-advised adventure as there is no Docker on the robot.
+
+From a control perspective,
+the specific topics to interact with the robot are:
+\begin{itemize}
+		\item (namespace)/platform/joint\_states - used
+				to fetch current joint angles (all of them).
+				Uses sensor\_msgs.msg.JointState as message format,
+				and it's just a vector of all joint angles.
+		\item (namespace)/platform/joints\_cmd - used
+				to send a velocity command to all 
+				joints. Also uses  sensor\_msgs.msg.JointState
+		\item (namespace)/platform/odometry - odometry topic.
+				Good enough for small experiments,
+				but there is AMCL for actual localization
+				(0.5Hz though, you need a filter to make use of
+				it).
+\end{itemize}
+
+\subsubsection{Concrete steps to use the robot}
+TODO document how to operate mobile yumi in vasteros 
+(sequence of buttons to press to restart it after it craps out),
+how to start Rviz and what to click in it to start EGM etc.
+
+\paragraph{In code}
+ATM in python/smc/multiprocessing/smc\_yumi\_node.py,
+will get rewriten to be like heron
+and moved to python/smc/robots/implementations/mobile\_yumi.py
+
+\subsection{Sleipner + YuMi (SLuMi)}
+TODO
+It's ROS1
+things to do
+1. turn power on on robot. first 

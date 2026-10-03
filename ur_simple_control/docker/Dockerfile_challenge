@@ -1,0 +1,82 @@
+FROM docker.io/ros:humble
+
+LABEL org.opencontainers.image.authors="marko.guberina@control.lth.se"
+
+# install python3-tk without questions
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Stockholm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        python3  \
+        python3-pip \
+        python3-tk \
+        ipython3 \
+        git \
+        sudo \
+        man-db \
+        manpages-posix \
+        iputils-ping \
+        arp-scan \
+        # nice to have
+#        python3-opencv \
+        vim \
+        vim-addon-manager \
+        vim-youcompleteme \
+        vim-python-jedi \
+        zsh \
+        zsh-syntax-highlighting \
+        libarchive-tools \
+        libxcb-cursor0\
+        python3-python-qt-binding 
+        
+# qt-binding is a really unnecessary 300MB, but i don't want
+# to do more matplotlib hacks
+
+#RUN sed -i 's:^path-exclude=/usr/share/man:#path-exclude=/usr/share/man:' \
+#        /etc/dpkg/dpkg.cfg.d/excludes
+#RUN yes | unminimize 
+
+# make the environment more usable
+# create user
+RUN useradd -m -s /bin/zsh -G sudo -u 1000 student
+
+WORKDIR /home/student/
+RUN passwd -d student
+USER student
+# copy repo to workdir
+RUN mkdir SimpleManipulatorControl
+COPY --chown=student .. ./SimpleManipulatorControl
+RUN mkdir -p .cache/zsh/
+COPY --chown=student /dot_files_for_docker/.vimrc /home/student/
+COPY --chown=student /dot_files_for_docker/.zshrc /home/student/
+COPY --chown=student /dot_files_for_docker/global_extra_conf.py /home/student/
+
+RUN vam install python-jedi && vam install youcompleteme
+
+# sh does not have sourcing 
+# and some packages (conda) want shell environment variables 
+# (which i can say a lot about, but can't do anything about)
+# ((the only reason to even use conda is to not have to compile pinocchio))
+SHELL ["/bin/bash", "--login", "-c"]
+#SHELL ["/bin/bash"]
+
+# this is enough to run clik
+WORKDIR /home/student/
+USER student
+# TODO: install casadi and pinochio 3.0+
+# TODO: verify this stuff below works
+# --> this can be done with conda
+#RUN mkdir -p ~/miniconda3
+#RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O /home/student/miniconda3/miniconda.sh
+#RUN bash /home/student/miniconda3/miniconda.sh -b -u -p ~/miniconda3
+#RUN rm /home/student/miniconda3/miniconda.sh
+#ENV PATH=/home/student/miniconda3/bin:$PATH
+#RUN source /home/student/miniconda3/bin/activate
+RUN pip install -e ./SimpleManipulatorControl/python/
+#RUN conda config --add channels conda-forge 
+##RUN conda install --solver=classic conda-forge::conda-libmamba-solver conda-forge::libmamba conda-forge::libmambapy conda-forge::libarchive
+#RUN conda install -y casadi opencv
+#RUN conda install --solver=classic -y pinocchio crocoddyl -c conda-forge
+RUN pip install matplotlib meshcat ur_rtde argcomplete \
+                qpsolvers ecos example_robot_data meshcat_shapes \
+                pyqt6 pin crocoddyl

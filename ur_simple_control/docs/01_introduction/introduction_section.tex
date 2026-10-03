@@ -1,0 +1,210 @@
+\chapter{Introduction}
+
+\section{Purpose}
+This text is documentation for a software library for robot control called 
+Simple Manipulator Control (SMC). 
+
+The library has 2 purposes:
+\begin{enumerate}
+\item To speed up the development, testing and deployment
+of (primarily) model-based controllers. This is facilitated via the 
+``batteries included'' approach, 
+by providing a ready-to-use collection of common control strategies.
+\item To serve as an educational platform for those looking
+	to get into robot control.
+\end{enumerate}
+
+These goals are achieved through the following.
+The library is developed in Python. This choice allows
+for short, flexible, easy-to-understand code, 
+a wide array of available external packages,
+while still providing real-time control, as heavy computation
+is executed in C/C++ via pybind wrappers (via NumPy, Pinocchio etc).
+Furthermore, the library is designed to be as simple as possible, 
+both in terms of logic,
+and the total amount of code. Its skeleton provides a common
+interface to both real and simulated robots,
+and a wrapper around control loops which are to be written by the users.
+The library primarily targets manipulators, but also provides 
+support for mobile manipulators,
+mainly targeting whole-body control design and testing.
+
+The simplicity comes at the cost of some programming comfort.
+This is guided by a personal belief that robotics software 
+should get out of the way
+of the fact that a robotic manipulator is just 6+ motorized pendulums,
+the control of which are easy to implement,
+provided appropriate mathematical background.
+Thus, the target audience for the library are control engineers
+who want to prototype and test their control designs.
+More broadly, the target audience  
+are people with a more mathematical background
+rather than a software background.
+
+Regarding software.
+Production-level robotics code should of course not be in Python,
+or any language with garbage collection.
+However, prototyping control should not have to be done
+with the strictest possible software standards,
+as this simply takes too much time, and it isn't even clear
+that a given controller is worth implementing properly.
+Having that said, poorly designed software is the 
+biggest hindrance to any project including software.
+Thus, the library aims to provide a sensible software architecture,
+but without forcing the user to always stick to it.
+
+To further facilitate the educational value
+of the library, the documentation explains not only
+the control design of existing controllers, but also
+the specific software design principles and techniques used.
+As mentioned above, software design is essential even for prototyping ---
+any code longer than a few hundred lines requires high-level structure
+to be useful.
+
+\paragraph{Basic technical information}
+\begin{itemize}
+\item The library is implemented in Python.
+\item The code is tested on MacOS, Arch Linux, Ubuntu 22 and 24, and should work on any Linux. Support for Windows is achieved
+ through Docker. The installation procedure for any OS
+is documented in the Installation section.
+\item All of the robotics-related dependent libraries are written in C++ with Python bindings, proving fast execution despite the Python front-end
+		(good enough for real-time control at >500Hz).
+\item Most dependencies are optional, and are used only in
+	dedicated modules.
+\end{itemize}
+
+% TODO: citations on different control strategies listed.
+% prolly will mostly be books
+\section{Overview of available robot types and controllers}
+
+\paragraph{Available tobot types}
+There is basic support for the following types of robots:
+\begin{itemize}
+		\item single arm manipulators, such as UR5e
+		\item dual arm manipulators, such as YuMi
+		\item single arm wheeled mobile manipulators
+		\item dual arm wheeled mobile manipulators
+\end{itemize}
+\paragraph{Available controllers}
+The library provides the implementation of following common 
+velocity-level control strategies for point to
+point motions, as well as trajectory tracking:
+\begin{itemize}
+\item joint space control
+\item Cartesian space control via the following inverse kinematics solvers:
+\begin{itemize}
+	\item Jacobian-based solvers such as damped Jacobian pseudoinverse
+	\item various QP formulations
+\end{itemize} 
+\item impedance control
+\item optimal control in the form of trajectory optimization (including MPC)
+\item dynamic motion primitives (DMP)
+\end{itemize}
+There is also some existing functionality for motion planning
+\begin{itemize}
+	\item path planning
+\begin{itemize}
+	\item dynamical system-based planning
+	\item random path generation
+\end{itemize} 
+	\item interpolation
+\begin{itemize}
+	\item approximating B-splines
+\end{itemize} 
+	\item trajectory generation (ongoing work)
+\begin{itemize}
+	\item polynomial trajectories
+\end{itemize} 
+	\item visual servoing (ongoing work)
+\end{itemize}
+
+Future work consists of the following:
+\begin{itemize}
+	\item joint and Cartesian space torque-level control
+\item controllers for extrinsic dexterity
+\end{itemize}
+
+
+\subsection{Supported robots}
+\begin{itemize}
+  \item UR robots
+  \item ABB YuMi
+  \item ABB mobile YuMi
+  \item Sleipner + YuMi platform (SLuMi) 
+  \item MiR mobile base with a UR arm (Heron)
+\end{itemize}
+Every robot, and its interface, has particular quirks
+one has to be aware of when working with hardware.
+To the extent pertinent for the library,
+they are described in \ref{chapter-hardware}.
+
+Planned extension of support:
+\begin{itemize}
+\item Franka Emika
+\item KUKA LBR iiwa
+\end{itemize}
+
+
+\paragraph{Extending support to other robots}
+Detailed instructions for extending to other robots are 
+provided in Appendix \ref{sec-supportable-hardware}
+but it consists of the following steps:
+\begin{itemize}
+\item Robot models are loaded via URDF.
+\item The communication interface with the robot is achieved through either:
+\begin{enumerate}
+\item A direct interface, ex. socket with a protocol.
+The interface has to contain functions for reading of the robot's state (joint positions, velocities, f/t sensor as vectors)
+  and functions to send control inputs (joint velocities).
+\item ROS1 driver. Due to ROS1 depending on deprecated 
+	Python versions, the ROS1 driver is to run in a Docker
+	translation layer, while communicating
+	with SMC though protobuf-serialized messages over sockets.
+\item ROS2 driver. The appropriate robot's ROS2 Node inherits
+	SMC's RealRobotManager, providing both SMC and ROS2 functionality.
+	In addition, in main files the controllers need to be registered
+	instead of immediately executed,
+	but otherwise everything is the same.
+\end{enumerate}
+\item Interfacing with grippers is dealt with on a case-by-case basis
+	depending on the specific hardware setup and available drivers.
+	Strong preference is given to independent gripper drivers
+	as this allows for simultaneous control of the robot and
+	the gripper.
+\end{itemize}
+
+\section{Usage instructions}
+The best way to get a hang of the library is by looking at
+the examples available in the \fbox{\texttt{examples}}
+directory.
+Different arguments and script description is available through 
+\newline
+\fbox{\texttt{python examples/script.py --help}}.
+More involved examples come with a technical report explaining the 
+goal of the example and how it is achieved.
+
+The library itself is documented within this document.
+This concerns the high-level design decisions,
+and the most important elements.  
+The \textbf{code itself is documented} and users are highly encouraged 
+to look into it, as it can often be used as a starting point
+when developing new functionality.
+
+The available control designs are briefly introduced in the control chapter.
+In those, the reader is referred to books and 
+papers for their theoretical background.
+Every controller comes with its example script,
+and with an instruction of how to run it in
+the \textbf{How to run} paragraphs, which denote where
+the example is and which arguments are important for it.
+The same is true for various robot classes.
+
+A \textbf{suggested workflow} for writing new examples
+and expanding the library can be found in the 
+\ref{sec-suggested-workflow} section.
+
+For users with little experience with Python, Linux and similar
+topics there are references to relevant learning material 
+in the Dependencies section. The idea is to provide 
+the minimum working knowledge needed to write
+a new controller and test it on hardware.
