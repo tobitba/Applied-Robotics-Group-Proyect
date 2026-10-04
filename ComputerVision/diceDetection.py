@@ -30,8 +30,8 @@ def get_dice_from_blobs(blobs):
     X = np.asarray(X)
 
     if len(X) > 0:
-        # Important to set min_sample to 0, as a dice may only have one dot
-        clustering = cluster.DBSCAN(eps=40, min_samples=0).fit(X)
+        # Important to set min_samples to 1, as a dice may only have one dot
+        clustering = cluster.DBSCAN(eps=40, min_samples=1).fit(X)
 
         # Find the largest label assigned + 1, that's the number of dice found
         num_dice = max(clustering.labels_) + 1
@@ -73,27 +73,26 @@ def overlay_info(frame, dice, blobs):
                     cv2.FONT_HERSHEY_PLAIN, 3, (0, 255, 0), 2)
 
 
-# Initialize a video feed
-cap = cv2.VideoCapture(0)
+if __name__ == "__main__":
+    # Initialize a video feed
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
+    while(True):
+        # Grab the latest image from the video feed
+        ret, frame = cap.read()
 
-while(True):
-    # Grab the latest image from the video feed
-    ret, frame = cap.read()
+        blobs = get_blobs(frame)
+        dice = get_dice_from_blobs(blobs)
+        out_frame = overlay_info(frame, dice, blobs)
 
-    # We'll define these later
-    blobs = get_blobs(frame)
-    dice = get_dice_from_blobs(blobs)
-    out_frame = overlay_info(frame, dice, blobs)
+        cv2.imshow("frame", frame)
 
-    cv2.imshow("frame", frame)
+        res = cv2.waitKey(1)
 
-    res = cv2.waitKey(1)
+        # Stop if the user presses "q"
+        if res & 0xFF == ord('q'):
+            break
 
-    # Stop if the user presses "q"
-    if res & 0xFF == ord('q'):
-        break
-
-# When everything is done, release the capture
-cap.release()
-cv2.destroyAllWindows()
+    # When everything is done, release the capture
+    cap.release()
+    cv2.destroyAllWindows()
